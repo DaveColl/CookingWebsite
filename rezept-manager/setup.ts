@@ -24,8 +24,8 @@ const create_table = `
     menge INTEGER,
     einheit TEXT,
     PRIMARY KEY (rezept_id, zutat_id),
-    FOREIGN KEY (rezept_id) REFERENCES rezept(id)
-    FOREIGN KEY (zutat_id) REFERENCES zutat(id)
+    FOREIGN KEY (rezept_id) REFERENCES rezepte(id)
+    FOREIGN KEY (zutat_id) REFERENCES zutaten(id)
   );
   `;
 
