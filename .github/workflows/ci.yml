@@ -1,0 +1,32 @@
+name: TS Quality Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Prüft auf TypeScript-Fehler (ohne Files zu generieren)
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+
+      # Prüft auf Linting-Fehler (ESLint muss im Projekt sein)
+      - name: Run Linter
+        run: npm run lint
