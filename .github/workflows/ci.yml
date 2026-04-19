@@ -1,32 +1,29 @@
-name: TS Quality Check
+name: SvelteKit Check
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build-and-lint:
+  check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install
         run: npm ci
 
-      # Prüft auf TypeScript-Fehler (ohne Files zu generieren)
-      - name: TypeScript Type Check
-        run: npx tsc --noEmit
+      # Findet Syntax- und Typfehler in .svelte und .ts Dateien
+      - name: Svelte Check
+        run: npm run check
 
-      # Prüft auf Linting-Fehler (ESLint muss im Projekt sein)
-      - name: Run Linter
+      - name: Lint
         run: npm run lint
