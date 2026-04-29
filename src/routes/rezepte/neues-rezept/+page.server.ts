@@ -1,5 +1,5 @@
 import type { Actions } from './$types';
-import Database from 'better-sqlite3';
+//import Database from 'better-sqlite3';
 
 // Connect to your database
 //const db = new Database('rezepte.db');
