@@ -1,4 +1,4 @@
-<form method="POST">
+<form class="create_recipe" method="POST">
 	<input type="text" name="titel" />
 	<input type="number" name="portionen" />
 	<input type="number" name="zubereitungszeit" />
