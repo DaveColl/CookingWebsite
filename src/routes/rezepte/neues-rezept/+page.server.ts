@@ -2,7 +2,7 @@ import type { Actions } from './$types';
 import Database from 'better-sqlite3';
 
 // Connect to your database
-const db = new Database('rezepte.db');
+//const db = new Database('rezepte.db');
 
 export const actions = {
 	create: async ({ request }) => {
