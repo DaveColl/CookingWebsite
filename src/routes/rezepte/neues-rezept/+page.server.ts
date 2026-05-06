@@ -1,8 +1,8 @@
 import type { Actions } from './$types';
-//import Database from 'better-sqlite3';
+import Database, { SqliteError } from 'better-sqlite3';
 
 // Connect to your database
-//const db = new Database('rezepte.db');
+const db = new Database('rezepte.db');
 
 export const actions = {
 	create: async ({ request }) => {
@@ -25,18 +25,38 @@ export const actions = {
 			!Number.isInteger(zubereitungszeit)
 		) {
 			return {
-				eingabefehler: true,
+				erfolg: false,
 				message: 'Füll die Felder korrekt aus (nur ganze Zahlen > 0).',
 				werte: { titel, portionen, zubereitungszeit, anleitung }
 			};
 		}
 
-		console.log('Received recipe data on server:', titel, portionen, zubereitungszeit, anleitung);
+		const statement = db.prepare(`
+      INSERT INTO rezepte(titel, portionen, zubereitungszeit, anleitung)
+      VALUES (?,?,?,?)
+      `);
 
-		// 3. Do your database saving or API calling here
-		// const recipeName = formData.get('recipe_name');
-
-		// 4. Return a response to the frontend
-		return { success: true };
+		try {
+			statement.run(titel, portionen, zubereitungszeit, anleitung);
+			console.log('Received recipe data on server:', titel, portionen, zubereitungszeit, anleitung);
+			return {
+				erfolg: true,
+				message: 'Daten wurden in die Datenbank eingetragen'
+			};
+		} catch (error: unknown) {
+			if (error instanceof SqliteError) {
+				if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+					return {
+						erfolg: false,
+						message: 'Das Rezept befindet sich bereits in der Datenbank'
+					};
+				}
+			}
+			console.error('Systemerror: ', error);
+			return {
+				erfolg: false,
+				message: 'Ein unerwarteter Fehler ist aufgetreten'
+			};
+		}
 	}
 } satisfies Actions;

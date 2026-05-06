@@ -5,12 +5,12 @@
 </script>
 
 <!-- If the server returned { success: false, message: '...' } -->
-{#if form?.eingabefehler === true}
+{#if form?.erfolg === false}
 	<p class="error-text">{form.message}</p>
 {/if}
 
 <!-- If the server returned { success: true } -->
-{#if form?.success === true}
+{#if form?.erfolg === true}
 	<p class="success-text">Recipe saved successfully!</p>
 {/if}
 
