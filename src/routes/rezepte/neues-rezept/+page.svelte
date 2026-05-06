@@ -1,25 +1,14 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
+	import RezeptFormular from '$lib/components/RezeptFormular.svelte';
 
 	let { form }: { form: ActionData } = $props();
 </script>
 
-<!-- If the server returned { success: false, message: '...' } -->
-{#if form?.erfolg === false}
-	<p class="error-text">{form.message}</p>
-{/if}
+<h1>Neues Rezept anlegen</h1>
 
-<!-- If the server returned { success: true } -->
-{#if form?.erfolg === true}
-	<p class="success-text">Recipe saved successfully!</p>
-{/if}
-
-<form class="create_recipe" action="?/create" method="POST">
-	<!-- -- class is for css and action for svelte action catcher-->
-	<input type="text" name="titel" value={form?.werte?.titel ?? ''} />
-	<!-- -- checkt ob der wert titel gegeben wurde ??(wenn nicht) dann platzier einen leeren String -->
-	<input type="number" name="portionen" value={form?.werte?.portionen ?? ''} />
-	<input type="number" name="zubereitungszeit" value={form?.werte?.zubereitungszeit ?? ''} />
-	<textarea name="anleitung" value={form?.werte?.anleitung ?? ''}></textarea>
-	<button type="submit">Speichern</button>
-</form>
+<!-- Formular aufrufen und die Parameter übergeben -->
+<RezeptFormular
+	action="?/create"
+	{form}
+/>
