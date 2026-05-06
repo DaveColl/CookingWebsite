@@ -45,18 +45,26 @@
 	<input
 		type="number"
 		name="portionen"
+		min="1"
 		value={startWerte?.portionen ?? form?.werte?.portionen ?? ''}
+		placeholder="Portionen"
+		required
 	/>
 
 	<input
 		type="number"
 		name="zubereitungszeit"
+		min="1"
 		value={startWerte?.zubereitungszeit ?? form?.werte?.zubereitungszeit ?? ''}
+		placeholder="Zubereitungszeit"
+		required
 	/>
 
 	<textarea
 		name="anleitung"
 		value={startWerte?.anleitung ?? form?.werte?.anleitung ?? ''}
+		placeholder="Anleitung"
+		required
 	></textarea>
 
 	<button type="submit">Speichern</button>
