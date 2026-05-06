@@ -1,13 +1,13 @@
-<script lang="ts">
-	import type { ActionData } from './$types';
+<script>
 	import RezeptFormular from '$lib/components/RezeptFormular.svelte';
-
-	let { form }: { form: ActionData } = $props();
+	let { form } = $props();
 </script>
 
-<h1>Neues Rezept anlegen</h1>
+<div class="seite-kopf">
+	<h1 class="seite-titel">Neues Rezept</h1>
+	<p class="seite-unter">Füge ein neues Rezept zu deiner Sammlung hinzu.</p>
+</div>
 
-<!-- Formular aufrufen und die Parameter übergeben -->
 <RezeptFormular
 	action="?/create"
 	{form}
