@@ -33,7 +33,9 @@ async function bildSpeichern(datei: File): Promise<string> {
 }
 
 function verwaistZutatenLoeschen() {
-	db.prepare('DELETE FROM zutaten WHERE id NOT IN (SELECT DISTINCT zutat_id FROM rezepte_zutaten)').run();
+	db.prepare(
+		'DELETE FROM zutaten WHERE id NOT IN (SELECT DISTINCT zutat_id FROM rezepte_zutaten)'
+	).run();
 }
 
 async function alteBildLoeschen(bildPfad: string | null) {
@@ -101,9 +103,9 @@ export const actions: Actions = {
 			return { erfolg: false, message: 'Mengen müssen ganze Zahlen > 0 sein.' };
 		}
 
-		const aktuell = db
-			.prepare('SELECT bild FROM rezepte WHERE id = ?')
-			.get(id) as { bild: string | null } | undefined;
+		const aktuell = db.prepare('SELECT bild FROM rezepte WHERE id = ?').get(id) as
+			| { bild: string | null }
+			| undefined;
 
 		let bildPfad: string | null = aktuell?.bild ?? null;
 		const bildDatei = formData.get('bild');
@@ -158,9 +160,9 @@ export const actions: Actions = {
 		const id = Number(params.id);
 		if (!Number.isInteger(id) || id <= 0) error(400);
 
-		const rezept = db
-			.prepare('SELECT bild FROM rezepte WHERE id = ?')
-			.get(id) as { bild: string | null } | undefined;
+		const rezept = db.prepare('SELECT bild FROM rezepte WHERE id = ?').get(id) as
+			| { bild: string | null }
+			| undefined;
 
 		db.prepare('DELETE FROM rezepte WHERE id = ?').run(id);
 		verwaistZutatenLoeschen();

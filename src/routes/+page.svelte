@@ -83,7 +83,9 @@
 	}
 
 	function wochentagKurz(datum: string): string {
-		return new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(new Date(datum + 'T00:00:00'));
+		return new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(
+			new Date(datum + 'T00:00:00')
+		);
 	}
 
 	function tagNummer(datum: string): string {
@@ -102,12 +104,18 @@
 	</header>
 
 	<div class="hub-karten">
-		<a href={resolve('/rezepte')} class="hub-karte">
+		<a
+			href={resolve('/rezepte')}
+			class="hub-karte"
+		>
 			<span class="hub-icon">📖</span>
 			<span class="hub-label">Rezepte</span>
 			<span class="hub-beschr">Alle Rezepte ansehen, hinzufügen und bearbeiten</span>
 		</a>
-		<a href={resolve('/einkauf')} class="hub-karte">
+		<a
+			href={resolve('/einkauf')}
+			class="hub-karte"
+		>
 			<span class="hub-icon">🛒</span>
 			<span class="hub-label">Einkaufsliste</span>
 			<span class="hub-beschr">Gemeinsam einkaufen – Echtzeit-Synchronisation</span>
@@ -132,28 +140,64 @@
 				>
 			</div>
 			<div class="nav-pfeile">
-				<button class="pfeil" onclick={zurueck}>‹</button>
+				<button
+					class="pfeil"
+					onclick={zurueck}>‹</button
+				>
 				<span class="nav-label">{navLabel}</span>
-				<button class="pfeil" onclick={weiter}>›</button>
+				<button
+					class="pfeil"
+					onclick={weiter}>›</button
+				>
 			</div>
-			<button class="btn-neue" onclick={() => (neueAufgabeOffen = !neueAufgabeOffen)}>
+			<button
+				class="btn-neue"
+				onclick={() => (neueAufgabeOffen = !neueAufgabeOffen)}
+			>
 				{neueAufgabeOffen ? '✕ Abbrechen' : '+ Neue Aufgabe'}
 			</button>
 		</div>
 	</div>
 
 	{#if neueAufgabeOffen}
-		<form method="POST" action="?/erstellen" use:enhance class="neue-form" onsubmit={() => (neueAufgabeOffen = false)}>
-			<input type="text" name="titel" placeholder="Aufgabe (z.B. Staubsaugen)" required autocomplete="off" />
-			<input type="number" name="dauer_minuten" placeholder="Dauer (Min.)" min="1" value="20" required />
+		<form
+			method="POST"
+			action="?/erstellen"
+			use:enhance
+			class="neue-form"
+			onsubmit={() => (neueAufgabeOffen = false)}
+		>
+			<input
+				type="text"
+				name="titel"
+				placeholder="Aufgabe (z.B. Staubsaugen)"
+				required
+				autocomplete="off"
+			/>
+			<input
+				type="number"
+				name="dauer_minuten"
+				placeholder="Dauer (Min.)"
+				min="1"
+				value="20"
+				required
+			/>
 			<select name="wiederholung">
 				<option value="einmalig">Einmalig</option>
 				<option value="taeglich">Täglich</option>
 				<option value="woechentlich">Wöchentlich</option>
 				<option value="monatlich">Monatlich</option>
 			</select>
-			<input type="date" name="geplant_fuer" value={heute} required />
-			<button type="submit" class="btn-speichern-aufgabe">Speichern</button>
+			<input
+				type="date"
+				name="geplant_fuer"
+				value={heute}
+				required
+			/>
+			<button
+				type="submit"
+				class="btn-speichern-aufgabe">Speichern</button
+			>
 		</form>
 	{/if}
 
@@ -171,40 +215,104 @@
 				</div>
 				{#each tagesAufgaben as aufgabe (aufgabe.id)}
 					{@const ueberfaellig = datum < heute && aufgabe.erledigt === 0}
-					<div class="aufgabe-karte" class:erledigt={aufgabe.erledigt === 1} class:ueberfaellig>
+					<div
+						class="aufgabe-karte"
+						class:erledigt={aufgabe.erledigt === 1}
+						class:ueberfaellig
+					>
 						<div class="aufgabe-info">
 							<span class="aufgabe-titel-text">{aufgabe.titel}</span>
 							<span class="aufgabe-dauer">⏱ {aufgabe.dauer_minuten} Min.</span>
 						</div>
 						<div class="aufgabe-aktionen">
 							{#if aufgabe.erledigt === 0}
-								<form method="POST" action="?/erledigen" use:enhance>
-									<input type="hidden" name="id" value={aufgabe.id} />
-									<button type="submit" class="btn-aktion erledigen" title="Erledigt">✓</button>
+								<form
+									method="POST"
+									action="?/erledigen"
+									use:enhance
+								>
+									<input
+										type="hidden"
+										name="id"
+										value={aufgabe.id}
+									/>
+									<button
+										type="submit"
+										class="btn-aktion erledigen"
+										title="Erledigt">✓</button
+									>
 								</form>
 								{#if ueberfaellig}
 									{#if verschiebenId === aufgabe.id}
-										<form method="POST" action="?/verschieben" use:enhance onsubmit={() => (verschiebenId = null)}>
-											<input type="hidden" name="id" value={aufgabe.id} />
-											<input type="date" name="neues_datum" required />
-											<button type="submit" class="btn-aktion ok">OK</button>
-											<button type="button" class="btn-aktion abbrechen" onclick={() => (verschiebenId = null)}>✕</button>
+										<form
+											method="POST"
+											action="?/verschieben"
+											use:enhance
+											onsubmit={() => (verschiebenId = null)}
+										>
+											<input
+												type="hidden"
+												name="id"
+												value={aufgabe.id}
+											/>
+											<input
+												type="date"
+												name="neues_datum"
+												required
+											/>
+											<button
+												type="submit"
+												class="btn-aktion ok">OK</button
+											>
+											<button
+												type="button"
+												class="btn-aktion abbrechen"
+												onclick={() => (verschiebenId = null)}>✕</button
+											>
 										</form>
 									{:else}
-										<button type="button" class="btn-verschieben" onclick={() => (verschiebenId = aufgabe.id)}>
+										<button
+											type="button"
+											class="btn-verschieben"
+											onclick={() => (verschiebenId = aufgabe.id)}
+										>
 											Verschieben
 										</button>
 									{/if}
 								{/if}
 							{:else}
-								<form method="POST" action="?/rueckgaengig" use:enhance>
-									<input type="hidden" name="id" value={aufgabe.id} />
-									<button type="submit" class="btn-aktion rueckgaengig" title="Rückgängig">↩</button>
+								<form
+									method="POST"
+									action="?/rueckgaengig"
+									use:enhance
+								>
+									<input
+										type="hidden"
+										name="id"
+										value={aufgabe.id}
+									/>
+									<button
+										type="submit"
+										class="btn-aktion rueckgaengig"
+										title="Rückgängig">↩</button
+									>
 								</form>
 							{/if}
-							<form method="POST" action="?/loeschen" use:enhance>
-								<input type="hidden" name="id" value={aufgabe.id} />
-								<button type="submit" class="btn-aktion loeschen" title="Löschen">✕</button>
+							<form
+								method="POST"
+								action="?/loeschen"
+								use:enhance
+							>
+								<input
+									type="hidden"
+									name="id"
+									value={aufgabe.id}
+								/>
+								<button
+									type="submit"
+									class="btn-aktion loeschen"
+									title="Löschen">✕</button
+								>
 							</form>
 						</div>
 					</div>
@@ -369,7 +477,9 @@
 		font-weight: 500;
 		color: #6b6255;
 		cursor: pointer;
-		transition: background 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			color 0.15s;
 	}
 
 	.ansicht-toggle button.aktiv {
@@ -395,7 +505,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: border-color 0.15s, color 0.15s;
+		transition:
+			border-color 0.15s,
+			color 0.15s;
 	}
 
 	.pfeil:hover {
@@ -421,7 +533,9 @@
 		border-radius: 8px;
 		padding: 0.35rem 0.8rem;
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.btn-neue:hover {

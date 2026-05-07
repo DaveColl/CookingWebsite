@@ -55,7 +55,9 @@ export const actions: Actions = {
 		const id = Number(data.get('id'));
 		if (!id) error(400);
 
-		const aufgabe = db.prepare('SELECT * FROM aufgaben WHERE id = ?').get(id) as Aufgabe | undefined;
+		const aufgabe = db.prepare('SELECT * FROM aufgaben WHERE id = ?').get(id) as
+			| Aufgabe
+			| undefined;
 		if (!aufgabe) error(404);
 
 		db.transaction(() => {

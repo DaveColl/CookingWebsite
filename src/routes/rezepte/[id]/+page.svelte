@@ -98,14 +98,28 @@
 			tabindex="-1"
 		>
 			<p class="dialog-icon">🗑</p>
-			<h3 id="dialog-titel" class="dialog-titel">Rezept löschen?</h3>
+			<h3
+				id="dialog-titel"
+				class="dialog-titel"
+			>
+				Rezept löschen?
+			</h3>
 			<p class="dialog-text">„{data.rezept.titel}" wird unwiderruflich gelöscht.</p>
 			<div class="dialog-aktionen">
-				<button class="dialog-abbrechen" onclick={() => (loeschenBestaetigen = false)}>
+				<button
+					class="dialog-abbrechen"
+					onclick={() => (loeschenBestaetigen = false)}
+				>
 					Abbrechen
 				</button>
-				<form method="POST" action="?/loeschen">
-					<button type="submit" class="dialog-loeschen">Ja, löschen</button>
+				<form
+					method="POST"
+					action="?/loeschen"
+				>
+					<button
+						type="submit"
+						class="dialog-loeschen">Ja, löschen</button
+					>
 				</form>
 			</div>
 		</div>
@@ -115,7 +129,10 @@
 {#if bearbeiten}
 	<div class="seite-kopf">
 		<h1 class="seite-titel">{data.rezept.titel} bearbeiten</h1>
-		<button class="link-btn" onclick={() => (bearbeiten = false)}>← Abbrechen</button>
+		<button
+			class="link-btn"
+			onclick={() => (bearbeiten = false)}>← Abbrechen</button
+		>
 	</div>
 
 	<RezeptFormular
@@ -137,7 +154,11 @@
 	{/if}
 
 	{#if data.rezept.bild}
-		<img class="detail-bild" src={data.rezept.bild} alt={data.rezept.titel} />
+		<img
+			class="detail-bild"
+			src={data.rezept.bild}
+			alt={data.rezept.titel}
+		/>
 	{/if}
 
 	<div class="seite-kopf">
@@ -215,8 +236,14 @@
 	</div>
 
 	<div class="rezept-aktionen">
-		<button class="btn-bearbeiten" onclick={() => (bearbeiten = true)}>Bearbeiten</button>
-		<button class="btn-loeschen" onclick={() => (loeschenBestaetigen = true)}>Löschen</button>
+		<button
+			class="btn-bearbeiten"
+			onclick={() => (bearbeiten = true)}>Bearbeiten</button
+		>
+		<button
+			class="btn-loeschen"
+			onclick={() => (loeschenBestaetigen = true)}>Löschen</button
+		>
 	</div>
 {/if}
 

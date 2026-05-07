@@ -52,7 +52,10 @@
 </div>
 
 <div class="import-bereich">
-	<button class="btn-import-toggle" onclick={() => (urlOffen = !urlOffen)}>
+	<button
+		class="btn-import-toggle"
+		onclick={() => (urlOffen = !urlOffen)}
+	>
 		{urlOffen ? '▲ Schließen' : '🔗 Aus URL importieren'}
 	</button>
 	{#if urlOffen}
@@ -106,7 +109,9 @@
 		border-radius: 8px;
 		padding: 0.45rem 0.9rem;
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.btn-import-toggle:hover {

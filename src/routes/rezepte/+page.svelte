@@ -8,9 +8,7 @@
 	const gefilterteRezepte = $derived(
 		suchbegriff.trim() === ''
 			? data.rezepte
-			: data.rezepte.filter((r) =>
-					r.titel.toLowerCase().includes(suchbegriff.toLowerCase().trim())
-				)
+			: data.rezepte.filter((r) => r.titel.toLowerCase().includes(suchbegriff.toLowerCase().trim()))
 	);
 </script>
 
@@ -40,7 +38,10 @@
 {:else}
 	<div class="karten-grid">
 		{#each gefilterteRezepte as rezept (rezept.id)}
-			<a href={resolve(`/rezepte/${rezept.id}`)} class="rezept-karte">
+			<a
+				href={resolve(`/rezepte/${rezept.id}`)}
+				class="rezept-karte"
+			>
 				{#if rezept.bild}
 					<img
 						class="karte-bild"

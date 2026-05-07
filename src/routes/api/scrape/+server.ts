@@ -7,22 +7,36 @@ import { randomUUID } from 'node:crypto';
 function parseISODuration(iso: string): number {
 	const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
 	if (!m) return 0;
-	return (parseInt(m[1] ?? '0') * 60) + parseInt(m[2] ?? '0');
+	return parseInt(m[1] ?? '0') * 60 + parseInt(m[2] ?? '0');
 }
 
 const EINHEITEN_MAP: Record<string, string> = {
-	g: 'g', gramm: 'g',
-	ml: 'ml', milliliter: 'ml',
-	tl: 'TL', teelöffel: 'TL', teeloffel: 'TL',
-	prise: 'Prise', prisen: 'Prise',
-	stück: 'Stück', stuck: 'Stück', stk: 'Stück',
+	g: 'g',
+	gramm: 'g',
+	ml: 'ml',
+	milliliter: 'ml',
+	tl: 'TL',
+	teelöffel: 'TL',
+	teeloffel: 'TL',
+	prise: 'Prise',
+	prisen: 'Prise',
+	stück: 'Stück',
+	stuck: 'Stück',
+	stk: 'Stück',
 	bund: 'Bund',
-	dose: 'Dose', dosen: 'Dose',
-	packung: 'Packung', pkg: 'Packung', pack: 'Packung',
+	dose: 'Dose',
+	dosen: 'Dose',
+	packung: 'Packung',
+	pkg: 'Packung',
+	pack: 'Packung'
 };
 
 const UNICODE_FRACTIONS: Record<string, number> = {
-	'½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 0.33, '⅔': 0.67,
+	'½': 0.5,
+	'¼': 0.25,
+	'¾': 0.75,
+	'⅓': 0.33,
+	'⅔': 0.67
 };
 
 function parseZutat(zeile: string): { name: string; menge: number; einheit: string } {
@@ -78,7 +92,7 @@ export const POST = async ({ request }: RequestEvent) => {
 	try {
 		browser = await puppeteer.launch({
 			headless: true,
-			args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+			args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 		});
 		const page = await browser.newPage();
 		await page.setUserAgent(
@@ -87,9 +101,7 @@ export const POST = async ({ request }: RequestEvent) => {
 		await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
 		const ldJsonBlocks: unknown[] = await page.evaluate(() => {
-			const scripts = Array.from(
-				document.querySelectorAll('script[type="application/ld+json"]')
-			);
+			const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
 			return scripts
 				.map((s) => {
 					try {
@@ -182,7 +194,7 @@ export const POST = async ({ request }: RequestEvent) => {
 					const extMap: Record<string, string> = {
 						'image/jpeg': 'jpg',
 						'image/png': 'png',
-						'image/webp': 'webp',
+						'image/webp': 'webp'
 					};
 					const ext = extMap[contentType] ?? 'jpg';
 					const filename = `${randomUUID()}.${ext}`;

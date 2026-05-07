@@ -59,7 +59,14 @@
 		};
 	}
 
-	let { action, form, startWerte, buttonText = 'Rezept speichern', currentBild = null, vorhandenesImportBild = null }: FormularProps = $props();
+	let {
+		action,
+		form,
+		startWerte,
+		buttonText = 'Rezept speichern',
+		currentBild = null,
+		vorhandenesImportBild = null
+	}: FormularProps = $props();
 	let bildDateiname = $state('');
 
 	let zutaten = $state<ZutatAnzeige[]>(
@@ -172,7 +179,10 @@
 	<div class="form-group">
 		<label for="bild">Rezeptbild (optional)</label>
 		<div class="datei-eingabe">
-			<label for="bild" class="btn-bild">📷 Bild auswählen</label>
+			<label
+				for="bild"
+				class="btn-bild">📷 Bild auswählen</label
+			>
 			<span class="datei-name">
 				{bildDateiname || (currentBild ? 'Aktuelles Bild wird behalten' : 'Kein Bild gewählt')}
 			</span>
@@ -252,9 +262,16 @@
 	</div>
 
 	{#if vorhandenesImportBild}
-		<input type="hidden" name="bild_pfad" value={vorhandenesImportBild} />
+		<input
+			type="hidden"
+			name="bild_pfad"
+			value={vorhandenesImportBild}
+		/>
 	{/if}
-	<button class="btn-speichern" type="submit">{buttonText}</button>
+	<button
+		class="btn-speichern"
+		type="submit">{buttonText}</button
+	>
 </form>
 
 <style>

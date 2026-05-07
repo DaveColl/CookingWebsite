@@ -7,7 +7,10 @@
 </script>
 
 <nav>
-	<a class="logo" href={resolve('/')}>Rezeptbuch</a>
+	<a
+		class="logo"
+		href={resolve('/')}>Rezeptbuch</a
+	>
 	<button
 		class="hamburger"
 		class:aktiv={menuOffen}
@@ -28,7 +31,8 @@
 		<li>
 			<a
 				href={resolve('/rezepte')}
-				class:aktiv={$page.url.pathname.startsWith('/rezepte') && $page.url.pathname !== '/rezepte/neues-rezept'}
+				class:aktiv={$page.url.pathname.startsWith('/rezepte') &&
+					$page.url.pathname !== '/rezepte/neues-rezept'}
 				onclick={() => (menuOffen = false)}>Alle Rezepte</a
 			>
 		</li>
@@ -50,7 +54,11 @@
 </nav>
 
 <!-- Separate wrapper handles the slide animation so overflow:hidden never clips ul children -->
-<div class="menu-schublade" class:offen={menuOffen} aria-hidden={!menuOffen}>
+<div
+	class="menu-schublade"
+	class:offen={menuOffen}
+	aria-hidden={!menuOffen}
+>
 	<ul class="menu-liste">
 		<li>
 			<a
@@ -62,7 +70,8 @@
 		<li>
 			<a
 				href={resolve('/rezepte')}
-				class:aktiv={$page.url.pathname.startsWith('/rezepte') && $page.url.pathname !== '/rezepte/neues-rezept'}
+				class:aktiv={$page.url.pathname.startsWith('/rezepte') &&
+					$page.url.pathname !== '/rezepte/neues-rezept'}
 				onclick={() => (menuOffen = false)}>Alle Rezepte</a
 			>
 		</li>
