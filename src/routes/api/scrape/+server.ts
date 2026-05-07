@@ -5,9 +5,15 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 function parseISODuration(iso: string): number {
-	const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-	if (!m) return 0;
-	return parseInt(m[1] ?? '0') * 60 + parseInt(m[2] ?? '0');
+	const hours = parseInt(iso.match(/(\d+)H/)?.[1] ?? '0');
+	const minutes = parseInt(iso.match(/(\d+)M/)?.[1] ?? '0');
+	return hours * 60 + minutes;
+}
+
+function parseZeitText(text: string): number {
+	const std = parseInt(text.match(/(\d+)\s*Std/)?.[1] ?? '0');
+	const min = parseInt(text.match(/(\d+)\s*Min/)?.[1] ?? '0');
+	return std * 60 + min;
 }
 
 const EINHEITEN_MAP: Record<string, string> = {
@@ -100,9 +106,9 @@ export const POST = async ({ request }: RequestEvent) => {
 		);
 		await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-		const ldJsonBlocks: unknown[] = await page.evaluate(() => {
+		const { ldJsonBlocks, gesamtzeitText, ogImage } = await page.evaluate(() => {
 			const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-			return scripts
+			const ldJsonBlocks = scripts
 				.map((s) => {
 					try {
 						return JSON.parse(s.textContent ?? '');
@@ -111,6 +117,29 @@ export const POST = async ({ request }: RequestEvent) => {
 					}
 				})
 				.filter(Boolean);
+
+			// DOM-based Gesamtzeit: find element with text "Gesamtzeit" and read sibling/parent
+			let gesamtzeitText = '';
+			const allEls = Array.from(document.querySelectorAll('*'));
+			for (const el of allEls) {
+				if (el.children.length === 0 && el.textContent?.trim() === 'Gesamtzeit') {
+					const prev = el.previousElementSibling;
+					if (prev) {
+						gesamtzeitText = prev.textContent?.trim() ?? '';
+						break;
+					}
+					const parentPrev = el.parentElement?.previousElementSibling;
+					if (parentPrev) {
+						gesamtzeitText = parentPrev.textContent?.trim() ?? '';
+						break;
+					}
+				}
+			}
+
+			const ogImage =
+				document.querySelector('meta[property="og:image"]')?.getAttribute('content') ?? '';
+
+			return { ldJsonBlocks, gesamtzeitText, ogImage };
 		});
 
 		let recipeData: Record<string, unknown> | null = null;
@@ -143,7 +172,8 @@ export const POST = async ({ request }: RequestEvent) => {
 		const portionen = parseInt(yieldRaw.match(/\d+/)?.[0] ?? '1') || 1;
 
 		const durationStr = String(recipeData['totalTime'] ?? recipeData['cookTime'] ?? '');
-		const zubereitungszeit = parseISODuration(durationStr) || 30;
+		const zubereitungszeit =
+			parseZeitText(gesamtzeitText) || parseISODuration(durationStr) || 30;
 
 		const instructionsRaw = recipeData['recipeInstructions'];
 		let anleitung = '';
@@ -185,10 +215,11 @@ export const POST = async ({ request }: RequestEvent) => {
 			const img = imageRaw as Record<string, unknown>;
 			imageUrl = String(img['url'] ?? '');
 		}
+		if (!imageUrl && ogImage) imageUrl = ogImage;
 
 		if (imageUrl) {
 			try {
-				const imgRes = await fetch(imageUrl);
+				const imgRes = await fetch(imageUrl, { headers: { Referer: url } });
 				if (imgRes.ok) {
 					const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg';
 					const extMap: Record<string, string> = {
@@ -196,7 +227,7 @@ export const POST = async ({ request }: RequestEvent) => {
 						'image/png': 'png',
 						'image/webp': 'webp'
 					};
-					const ext = extMap[contentType] ?? 'jpg';
+					const ext = extMap[contentType.split(';')[0].trim()] ?? 'jpg';
 					const filename = `${randomUUID()}.${ext}`;
 					await mkdir('static/uploads', { recursive: true });
 					await writeFile(

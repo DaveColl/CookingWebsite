@@ -50,6 +50,13 @@
 				onclick={() => (menuOffen = false)}>Einkaufsliste</a
 			>
 		</li>
+		<li>
+			<a
+				href={resolve('/aufgaben')}
+				class:aktiv={$page.url.pathname.startsWith('/aufgaben')}
+				onclick={() => (menuOffen = false)}>Aufgaben</a
+			>
+		</li>
 	</ul>
 </nav>
 
@@ -87,6 +94,13 @@
 				href={resolve('/einkauf')}
 				class:aktiv={$page.url.pathname.startsWith('/einkauf')}
 				onclick={() => (menuOffen = false)}>Einkaufsliste</a
+			>
+		</li>
+		<li>
+			<a
+				href={resolve('/aufgaben')}
+				class:aktiv={$page.url.pathname.startsWith('/aufgaben')}
+				onclick={() => (menuOffen = false)}>Aufgaben</a
 			>
 		</li>
 	</ul>

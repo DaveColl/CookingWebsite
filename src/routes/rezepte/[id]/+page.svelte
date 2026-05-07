@@ -57,6 +57,13 @@
 		}
 	});
 
+	function formatZeit(min: number): string {
+		if (min < 60) return `${min} Min`;
+		const h = Math.floor(min / 60);
+		const m = min % 60;
+		return m === 0 ? `${h} Std` : `${h} Std ${m} Min`;
+	}
+
 	function zutatAnzeige(rohMenge: number, einheit: string): string {
 		const m = rohMenge * faktor;
 		if (einheit === 'g' && m >= 1000) {
@@ -158,6 +165,7 @@
 			class="detail-bild"
 			src={data.rezept.bild}
 			alt={data.rezept.titel}
+			loading="lazy"
 		/>
 	{/if}
 
@@ -181,7 +189,7 @@
 				<span class="meta-text">Portionen</span>
 			</div>
 			<span class="meta-trenner">·</span>
-			<span class="meta-text">{data.rezept.zubereitungszeit} Min</span>
+			<span class="meta-text">{formatZeit(data.rezept.zubereitungszeit)}</span>
 		</div>
 	</div>
 

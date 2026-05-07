@@ -5,6 +5,14 @@
 	import { resolve } from '$app/paths';
 
 	let suchbegriff = $state('');
+
+	function formatZeit(min: number): string {
+		if (min < 60) return `${min} Min`;
+		const h = Math.floor(min / 60);
+		const m = min % 60;
+		return m === 0 ? `${h} Std` : `${h} Std ${m} Min`;
+	}
+
 	const gefilterteRezepte = $derived(
 		suchbegriff.trim() === ''
 			? data.rezepte
@@ -58,7 +66,7 @@
 					</div>
 				{/if}
 				<p class="karte-titel">{rezept.titel}</p>
-				<p class="karte-meta">{rezept.portionen} Portionen · {rezept.zubereitungszeit} Min</p>
+				<p class="karte-meta">{rezept.portionen} Portionen · {formatZeit(rezept.zubereitungszeit)}</p>
 			</a>
 		{/each}
 	</div>
