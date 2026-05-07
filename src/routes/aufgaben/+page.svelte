@@ -22,15 +22,12 @@
 	const heute = $derived(new Date().toISOString().slice(0, 10));
 
 	const wocheTage = $derived.by(() => {
-		const d = new Date(bezugsDatum);
-		const day = d.getDay();
+		const day = bezugsDatum.getDay();
 		const diff = day === 0 ? -6 : 1 - day;
-		d.setDate(d.getDate() + diff);
-		return Array.from({ length: 7 }, (_, i) => {
-			const dd = new Date(d);
-			dd.setDate(d.getDate() + i);
-			return dd.toISOString().slice(0, 10);
-		});
+		const base = bezugsDatum.getTime();
+		return Array.from({ length: 7 }, (_, i) =>
+			new Date(base + (diff + i) * 86_400_000).toISOString().slice(0, 10)
+		);
 	});
 
 	const monatTage = $derived.by(() => {
@@ -69,17 +66,27 @@
 	});
 
 	function zurueck() {
-		const d = new Date(bezugsDatum);
-		if (ansicht === 'woche') d.setDate(d.getDate() - 7);
-		else d.setMonth(d.getMonth() - 1);
-		bezugsDatum = d;
+		if (ansicht === 'woche') {
+			bezugsDatum = new Date(bezugsDatum.getTime() - 7 * 86_400_000);
+		} else {
+			bezugsDatum = new Date(
+				bezugsDatum.getFullYear(),
+				bezugsDatum.getMonth() - 1,
+				bezugsDatum.getDate()
+			);
+		}
 	}
 
 	function weiter() {
-		const d = new Date(bezugsDatum);
-		if (ansicht === 'woche') d.setDate(d.getDate() + 7);
-		else d.setMonth(d.getMonth() + 1);
-		bezugsDatum = d;
+		if (ansicht === 'woche') {
+			bezugsDatum = new Date(bezugsDatum.getTime() + 7 * 86_400_000);
+		} else {
+			bezugsDatum = new Date(
+				bezugsDatum.getFullYear(),
+				bezugsDatum.getMonth() + 1,
+				bezugsDatum.getDate()
+			);
+		}
 	}
 
 	function wochentagKurz(datum: string): string {

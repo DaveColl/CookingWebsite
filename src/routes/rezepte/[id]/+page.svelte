@@ -198,7 +198,7 @@
 			<div class="zutaten-karte">
 				<h2 class="zutaten-kopf">Zutaten</h2>
 				<ul class="zutaten-liste">
-					{#each data.zutaten as zutat, i}
+					{#each data.zutaten as zutat, i (i)}
 						<li class:zutat-ausgewaehlt={ausgewaehlteZutaten.includes(i)}>
 							<button
 								type="button"
