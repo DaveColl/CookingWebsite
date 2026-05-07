@@ -1,46 +1,6 @@
-<!-- src/routes/rezepte/+layout.svelte -->
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { resolve } from '$app/paths';
 	let { children } = $props();
 </script>
-
-<svelte:head>
-	<link
-		rel="preconnect"
-		href="https://fonts.googleapis.com"
-	/>
-	<link
-		rel="preconnect"
-		href="https://fonts.gstatic.com"
-		crossorigin="anonymous"
-	/>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,700;1,500&family=Outfit:wght@300;400;500;600&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
-<nav>
-	<a
-		class="logo"
-		href={resolve('/rezepte')}>Rezeptbuch</a
-	>
-	<ul>
-		<li>
-			<a
-				href={resolve('/rezepte')}
-				class:aktiv={$page.url.pathname === '/rezepte'}>Alle Rezepte</a
-			>
-		</li>
-		<li>
-			<a
-				href={resolve('/rezepte/neues-rezept')}
-				class:aktiv={$page.url.pathname === '/rezepte/neues-rezept'}>+ Neues Rezept</a
-			>
-		</li>
-	</ul>
-</nav>
 
 <main>
 	{@render children()}
@@ -61,66 +21,21 @@
 		min-height: 100vh;
 	}
 
-	nav {
-		position: sticky;
-		top: 0;
-		z-index: 50;
-		background: #fdfaf4;
-		border-bottom: 1px solid #e5ddd0;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0 2.5rem;
-		height: 62px;
-	}
-
-	.logo {
-		font-family: 'Lora', serif;
-		font-size: 1.35rem;
-		font-weight: 700;
-		color: #2c4a1e;
-		text-decoration: none;
-	}
-
-	ul {
-		list-style: none;
-		display: flex;
-		gap: 0.25rem;
-	}
-
-	ul a {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #6b6255;
-		text-decoration: none;
-		padding: 0.4rem 0.9rem;
-		border-radius: 8px;
-		transition:
-			background 0.15s,
-			color 0.15s;
-	}
-
-	ul a:hover {
-		background: #ede7dc;
-		color: #2c4a1e;
-	}
-	ul a.aktiv {
-		background: #2c4a1e;
-		color: #fdfaf4;
-	}
-
 	main {
 		max-width: 820px;
 		margin: 0 auto;
 		padding: 3rem 2rem 6rem;
 	}
 
-	@media (max-width: 500px) {
+	@media (max-width: 600px) {
 		main {
 			padding: 2rem 1.25rem 5rem;
 		}
-		nav {
-			padding: 0 1.25rem;
+	}
+
+	@media (max-width: 375px) {
+		main {
+			padding: 1.5rem 1rem 4rem;
 		}
 	}
 
@@ -192,6 +107,16 @@
 			border-color 0.18s,
 			box-shadow 0.18s;
 	}
+	:global(input[type='number']) {
+		appearance: textfield;
+		-moz-appearance: textfield;
+	}
+	:global(input[type='number']::-webkit-inner-spin-button),
+	:global(input[type='number']::-webkit-outer-spin-button) {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
 	:global(input:focus),
 	:global(textarea:focus),
 	:global(select:focus) {
@@ -336,6 +261,11 @@
 		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 		gap: 1.25rem;
 	}
+	@media (max-width: 375px) {
+		:global(.karten-grid) {
+			grid-template-columns: 1fr;
+		}
+	}
 	:global(.rezept-karte) {
 		background: #fdfaf4;
 		border: 1px solid #e5ddd0;
@@ -365,5 +295,25 @@
 		font-size: 0.82rem;
 		color: #8a7d6e;
 		font-weight: 300;
+	}
+
+	/* Kartenbilder */
+	:global(.karte-bild) {
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		border-radius: 8px;
+		margin-bottom: 0.2rem;
+	}
+	:global(.karte-bild-platzhalter) {
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		background: #f0ebe2;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 2rem;
+		margin-bottom: 0.2rem;
 	}
 </style>

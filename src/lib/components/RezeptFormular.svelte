@@ -30,6 +30,9 @@
 		action: string;
 		form?: { erfolg?: boolean; message?: string; werte?: RezeptWerte } | null;
 		startWerte?: RezeptWerte | null;
+		buttonText?: string;
+		currentBild?: string | null;
+		vorhandenesImportBild?: string | null;
 	}
 
 	const einheitenKonfig: EinheitKonfig[] = [
@@ -56,7 +59,8 @@
 		};
 	}
 
-	let { action, form, startWerte }: FormularProps = $props();
+	let { action, form, startWerte, buttonText = 'Rezept speichern', currentBild = null, vorhandenesImportBild = null }: FormularProps = $props();
+	let bildDateiname = $state('');
 
 	let zutaten = $state<ZutatAnzeige[]>(
 		untrack(
@@ -111,6 +115,7 @@
 	class="recipe-form"
 	{action}
 	method="POST"
+	enctype="multipart/form-data"
 >
 	<div class="form-group">
 		<label for="titel">Titel</label>
@@ -118,6 +123,7 @@
 			id="titel"
 			type="text"
 			name="titel"
+			autocomplete="off"
 			value={startWerte?.titel ?? form?.werte?.titel ?? ''}
 			placeholder="z.B. Omas Apfelkuchen"
 			required
@@ -156,10 +162,31 @@
 		<textarea
 			id="anleitung"
 			name="anleitung"
+			autocomplete="off"
 			value={startWerte?.anleitung ?? form?.werte?.anleitung ?? ''}
 			placeholder="Schritt für Schritt…"
 			required
 		></textarea>
+	</div>
+
+	<div class="form-group">
+		<label for="bild">Rezeptbild (optional)</label>
+		<div class="datei-eingabe">
+			<label for="bild" class="btn-bild">📷 Bild auswählen</label>
+			<span class="datei-name">
+				{bildDateiname || (currentBild ? 'Aktuelles Bild wird behalten' : 'Kein Bild gewählt')}
+			</span>
+		</div>
+		<input
+			id="bild"
+			type="file"
+			name="bild"
+			accept="image/jpeg,image/png,image/webp,image/gif"
+			class="datei-versteckt"
+			onchange={(e) => {
+				bildDateiname = (e.target as HTMLInputElement).files?.[0]?.name ?? '';
+			}}
+		/>
 	</div>
 
 	<div class="zutaten-block">
@@ -224,8 +251,54 @@
 		>
 	</div>
 
-	<button
-		class="btn-speichern"
-		type="submit">Rezept speichern</button
-	>
+	{#if vorhandenesImportBild}
+		<input type="hidden" name="bild_pfad" value={vorhandenesImportBild} />
+	{/if}
+	<button class="btn-speichern" type="submit">{buttonText}</button>
 </form>
+
+<style>
+	.datei-eingabe {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.datei-versteckt {
+		position: absolute;
+		width: 0;
+		height: 0;
+		opacity: 0;
+		overflow: hidden;
+	}
+
+	.btn-bild {
+		font-size: 0.85rem;
+		font-weight: 500;
+		letter-spacing: normal;
+		text-transform: none;
+		color: #4a7c3f;
+		background: transparent;
+		border: 1.5px solid #9dc495;
+		border-radius: 8px;
+		padding: 0.45rem 0.9rem;
+		cursor: pointer;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
+		white-space: nowrap;
+	}
+
+	.btn-bild:hover {
+		background: rgba(74, 124, 63, 0.07);
+		border-color: #4a7c3f;
+	}
+
+	.datei-name {
+		font-size: 0.875rem;
+		color: #8a7d6e;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+</style>

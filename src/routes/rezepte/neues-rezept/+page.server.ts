@@ -1,7 +1,21 @@
 // src/routes/rezepte/neues-rezept/+page.server.ts
 import type { Actions } from './$types';
 import { SqliteError } from 'better-sqlite3';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import db from '$lib/db';
+
+const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_BYTES = 5 * 1024 * 1024;
+
+async function bildSpeichern(datei: File): Promise<string> {
+	await mkdir('static/uploads', { recursive: true });
+	const ext = datei.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+	const name = `${randomUUID()}.${ext}`;
+	await writeFile(join('static/uploads', name), new Uint8Array(await datei.arrayBuffer()));
+	return `/uploads/${name}`;
+}
 
 export const actions = {
 	create: async ({ request }) => {
@@ -40,9 +54,30 @@ export const actions = {
 			return { erfolg: false, message: 'Mengen müssen ganze Zahlen > 0 sein.' };
 		}
 
+		// Bild verarbeiten (optional)
+		let bildPfad: string | null = null;
+		const bildDatei = formData.get('bild');
+		if (bildDatei instanceof File && bildDatei.size > 0) {
+			if (!ERLAUBTE_TYPEN.includes(bildDatei.type))
+				return { erfolg: false, message: 'Nur JPEG, PNG, WebP und GIF sind erlaubt.' };
+			if (bildDatei.size > MAX_BYTES)
+				return { erfolg: false, message: 'Das Bild darf maximal 5 MB groß sein.' };
+			try {
+				bildPfad = await bildSpeichern(bildDatei);
+			} catch {
+				return { erfolg: false, message: 'Fehler beim Speichern des Bildes.' };
+			}
+		} else {
+			// Use pre-downloaded image from scraper if no manual upload
+			const importPfad = formData.get('bild_pfad')?.toString().trim();
+			if (importPfad && importPfad.startsWith('/uploads/')) {
+				bildPfad = importPfad;
+			}
+		}
+
 		const rezeptEinfuegen = db.prepare(`
-			INSERT INTO rezepte (titel, portionen, zubereitungszeit, anleitung)
-			VALUES (?, ?, ?, ?)
+			INSERT INTO rezepte (titel, portionen, zubereitungszeit, anleitung, bild)
+			VALUES (?, ?, ?, ?, ?)
 		`);
 		const zutatEinfuegen = db.prepare(`
 			INSERT OR IGNORE INTO zutaten (zutat) VALUES (?)
@@ -61,7 +96,8 @@ export const actions = {
 					titel,
 					portionen,
 					zubereitungszeit,
-					anleitung
+					anleitung,
+					bildPfad
 				);
 
 				for (let i = 0; i < zutatNamen.length; i++) {
