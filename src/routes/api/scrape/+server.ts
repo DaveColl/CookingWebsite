@@ -172,8 +172,7 @@ export const POST = async ({ request }: RequestEvent) => {
 		const portionen = parseInt(yieldRaw.match(/\d+/)?.[0] ?? '1') || 1;
 
 		const durationStr = String(recipeData['totalTime'] ?? recipeData['cookTime'] ?? '');
-		const zubereitungszeit =
-			parseZeitText(gesamtzeitText) || parseISODuration(durationStr) || 30;
+		const zubereitungszeit = parseZeitText(gesamtzeitText) || parseISODuration(durationStr) || 30;
 
 		const instructionsRaw = recipeData['recipeInstructions'];
 		let anleitung = '';

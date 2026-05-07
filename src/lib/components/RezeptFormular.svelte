@@ -184,7 +184,12 @@
 				class="btn-bild">📷 Bild auswählen</label
 			>
 			<span class="datei-name">
-				{bildDateiname || (vorhandenesImportBild ? 'Importiertes Bild wird verwendet' : (currentBild ? 'Aktuelles Bild wird behalten' : 'Kein Bild gewählt'))}
+				{bildDateiname ||
+					(vorhandenesImportBild
+						? 'Importiertes Bild wird verwendet'
+						: currentBild
+							? 'Aktuelles Bild wird behalten'
+							: 'Kein Bild gewählt')}
 			</span>
 		</div>
 		<input

@@ -14,17 +14,26 @@
 	</header>
 
 	<div class="hub-karten">
-		<a href={resolve('/rezepte')} class="hub-karte">
+		<a
+			href={resolve('/rezepte')}
+			class="hub-karte"
+		>
 			<span class="hub-icon">📖</span>
 			<span class="hub-label">Rezepte</span>
 			<span class="hub-beschr">Alle Rezepte ansehen, hinzufügen und bearbeiten</span>
 		</a>
-		<a href={resolve('/einkauf')} class="hub-karte">
+		<a
+			href={resolve('/einkauf')}
+			class="hub-karte"
+		>
 			<span class="hub-icon">🛒</span>
 			<span class="hub-label">Einkaufsliste</span>
 			<span class="hub-beschr">Gemeinsam einkaufen – Echtzeit-Synchronisation</span>
 		</a>
-		<a href={resolve('/aufgaben')} class="hub-karte">
+		<a
+			href={resolve('/aufgaben')}
+			class="hub-karte"
+		>
 			<span class="hub-icon">🧹</span>
 			<span class="hub-label">Aufgaben</span>
 			<span class="hub-beschr">Wöchentlicher Haushaltsplaner mit Wiederholungen</span>

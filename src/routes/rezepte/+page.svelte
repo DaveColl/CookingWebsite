@@ -66,7 +66,9 @@
 					</div>
 				{/if}
 				<p class="karte-titel">{rezept.titel}</p>
-				<p class="karte-meta">{rezept.portionen} Portionen · {formatZeit(rezept.zubereitungszeit)}</p>
+				<p class="karte-meta">
+					{rezept.portionen} Portionen · {formatZeit(rezept.zubereitungszeit)}
+				</p>
 			</a>
 		{/each}
 	</div>
