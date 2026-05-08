@@ -2,6 +2,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 
 	interface Aufgabe {
 		id: number;
@@ -10,6 +11,11 @@
 		wiederholung: string;
 		geplant_fuer: string;
 		erledigt: number;
+		zugewiesen_an: string[];
+	}
+
+	function fokussieren(element: HTMLElement) {
+		element.focus();
 	}
 
 	let { data }: { data: PageData & { aufgaben: Aufgabe[] } } = $props();
@@ -18,15 +24,24 @@
 	let bezugsDatum = $state(new Date());
 	let neueAufgabeOffen = $state(false);
 	let verschiebenId = $state<number | null>(null);
+	let zuweisenId = $state<number | null>(null);
+	let zuweisenWert = $state('');
+	let dragId = $state<number | null>(null);
+	let dragZielDatum = $state<string | null>(null);
 
-	const heute = $derived(new Date().toISOString().slice(0, 10));
+	function localDateStr(d: Date): string {
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+
+	const heute = $derived(localDateStr(new Date()));
 
 	const wocheTage = $derived.by(() => {
 		const day = bezugsDatum.getDay();
 		const diff = day === 0 ? -6 : 1 - day;
-		const base = bezugsDatum.getTime();
 		return Array.from({ length: 7 }, (_, i) =>
-			new Date(base + (diff + i) * 86_400_000).toISOString().slice(0, 10)
+			localDateStr(
+				new Date(bezugsDatum.getFullYear(), bezugsDatum.getMonth(), bezugsDatum.getDate() + diff + i)
+			)
 		);
 	});
 
@@ -34,10 +49,7 @@
 		const year = bezugsDatum.getFullYear();
 		const month = bezugsDatum.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
-		return Array.from({ length: daysInMonth }, (_, i) => {
-			const d = new Date(year, month, i + 1);
-			return d.toISOString().slice(0, 10);
-		});
+		return Array.from({ length: daysInMonth }, (_, i) => localDateStr(new Date(year, month, i + 1)));
 	});
 
 	const aufgabenNachDatum = $derived(
@@ -67,25 +79,25 @@
 
 	function zurueck() {
 		if (ansicht === 'woche') {
-			bezugsDatum = new Date(bezugsDatum.getTime() - 7 * 86_400_000);
-		} else {
 			bezugsDatum = new Date(
 				bezugsDatum.getFullYear(),
-				bezugsDatum.getMonth() - 1,
-				bezugsDatum.getDate()
+				bezugsDatum.getMonth(),
+				bezugsDatum.getDate() - 7
 			);
+		} else {
+			bezugsDatum = new Date(bezugsDatum.getFullYear(), bezugsDatum.getMonth() - 1, 1);
 		}
 	}
 
 	function weiter() {
 		if (ansicht === 'woche') {
-			bezugsDatum = new Date(bezugsDatum.getTime() + 7 * 86_400_000);
-		} else {
 			bezugsDatum = new Date(
 				bezugsDatum.getFullYear(),
-				bezugsDatum.getMonth() + 1,
-				bezugsDatum.getDate()
+				bezugsDatum.getMonth(),
+				bezugsDatum.getDate() + 7
 			);
+		} else {
+			bezugsDatum = new Date(bezugsDatum.getFullYear(), bezugsDatum.getMonth() + 1, 1);
 		}
 	}
 
@@ -97,6 +109,39 @@
 
 	function tagNummer(datum: string): string {
 		return datum.slice(8).replace(/^0/, '');
+	}
+
+	function kreisFarbe(name: string): string {
+		const farben = ['#2c4a1e', '#7c3f2c', '#2c3f7c', '#6b2c7c', '#2c6b7c', '#7c6b2c'];
+		return farben[name.charCodeAt(0) % farben.length];
+	}
+
+	function onDragStart(id: number, event: DragEvent) {
+		dragId = id;
+		event.dataTransfer!.effectAllowed = 'move';
+	}
+
+	function onDragOver(datum: string, event: DragEvent) {
+		event.preventDefault();
+		event.dataTransfer!.dropEffect = 'move';
+		dragZielDatum = datum;
+	}
+
+	function onDragLeave() {
+		dragZielDatum = null;
+	}
+
+	async function onDrop(datum: string, event: DragEvent) {
+		event.preventDefault();
+		dragZielDatum = null;
+		if (dragId === null) return;
+		const id = dragId;
+		dragId = null;
+		const body = new FormData();
+		body.append('id', String(id));
+		body.append('neues_datum', datum);
+		await fetch('?/verschieben', { method: 'POST', body });
+		await invalidateAll();
 	}
 </script>
 
@@ -184,6 +229,12 @@
 				value={heute}
 				required
 			/>
+			<input
+				type="text"
+				name="zugewiesen_an"
+				placeholder="Zugewiesen an"
+				maxlength="20"
+			/>
 			<button
 				type="submit"
 				class="btn-speichern-aufgabe">Speichern</button
@@ -196,8 +247,13 @@
 			{@const tagesAufgaben = aufgabenNachDatum.get(datum) ?? []}
 			<div
 				class="tag-spalte"
+				role="list"
 				class:heute={datum === heute}
+				class:drag-ziel={dragZielDatum === datum}
 				style={ansicht === 'monat' && i === 0 ? `grid-column-start: ${monatErsterWochentag}` : ''}
+				ondragover={(e) => onDragOver(datum, e)}
+				ondragleave={onDragLeave}
+				ondrop={(e) => onDrop(datum, e)}
 			>
 				<div class="tag-kopf">
 					<span class="tag-wochentag">{wochentagKurz(datum)}</span>
@@ -207,13 +263,79 @@
 					{@const ueberfaellig = datum < heute && aufgabe.erledigt === 0}
 					<div
 						class="aufgabe-karte"
+						role="listitem"
 						class:erledigt={aufgabe.erledigt === 1}
 						class:ueberfaellig
+						draggable="true"
+						ondragstart={(e) => onDragStart(aufgabe.id, e)}
 					>
 						<div class="aufgabe-info">
 							<span class="aufgabe-titel-text">{aufgabe.titel}</span>
 							<span class="aufgabe-dauer">⏱ {aufgabe.dauer_minuten} Min.</span>
 						</div>
+
+						<div class="zugewiesen-zeile">
+							{#each aufgabe.zugewiesen_an as person}
+								<form
+									method="POST"
+									action="?/person_entfernen"
+									use:enhance
+								>
+									<input type="hidden" name="id" value={aufgabe.id} />
+									<input type="hidden" name="name" value={person} />
+									<button
+										type="submit"
+										class="zugewiesen-kreis"
+										title="{person} entfernen"
+										style="background: {kreisFarbe(person)}"
+									>
+										{person.slice(0, 2).toUpperCase()}
+									</button>
+								</form>
+							{/each}
+
+							{#if zuweisenId === aufgabe.id}
+								<form
+									method="POST"
+									action="?/person_hinzufuegen"
+									use:enhance={() =>
+										async ({ update }) => {
+											await update();
+											zuweisenId = null;
+										}}
+									class="zuweisen-form"
+								>
+									<input type="hidden" name="id" value={aufgabe.id} />
+									<input
+										type="text"
+										name="name"
+										bind:value={zuweisenWert}
+										placeholder="Name"
+										maxlength="20"
+										use:fokussieren
+									/>
+									<button type="submit" class="btn-aktion ok">✓</button>
+									<button
+										type="button"
+										class="btn-aktion abbrechen"
+										onclick={() => (zuweisenId = null)}>✕</button
+									>
+								</form>
+							{:else}
+								<button
+									type="button"
+									class="zugewiesen-kreis zugewiesen-leer"
+									title="Person hinzufügen"
+									onclick={() => {
+										zuweisenId = aufgabe.id;
+										zuweisenWert = '';
+									}}
+								>
+									+
+								</button>
+							{/if}
+						</div>
+
 						<div class="aufgabe-aktionen">
 							{#if aufgabe.erledigt === 0}
 								<form
@@ -482,6 +604,10 @@
 		width: 150px;
 	}
 
+	.neue-form input[name='zugewiesen_an'] {
+		width: 130px;
+	}
+
 	.btn-speichern-aufgabe {
 		font-family: 'Outfit', sans-serif;
 		font-size: 0.9rem;
@@ -519,11 +645,21 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.tag-spalte.heute {
 		border-color: #4a7c3f;
 		background: #f3f8f1;
+	}
+
+	.tag-spalte.drag-ziel {
+		border-color: #4a7c3f;
+		background: #eef5ec;
+		outline: 2px dashed #9dc495;
+		outline-offset: -2px;
 	}
 
 	.tag-kopf {
@@ -565,6 +701,12 @@
 		border-radius: 6px;
 		padding: 0.4rem 0.5rem;
 		font-size: 0.78rem;
+		cursor: grab;
+	}
+
+	.aufgabe-karte:active {
+		cursor: grabbing;
+		opacity: 0.6;
 	}
 
 	.aufgabe-karte.ueberfaellig {
@@ -595,6 +737,60 @@
 	.aufgabe-dauer {
 		font-size: 0.7rem;
 		color: #8a7d6e;
+	}
+
+	/* Assignee circle */
+	.zugewiesen-zeile {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-top: 0.2rem;
+		flex-wrap: wrap;
+	}
+
+	.zugewiesen-kreis {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: none;
+		color: #fdfaf4;
+		font-size: 0.55rem;
+		font-weight: 700;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		letter-spacing: 0;
+		transition: opacity 0.15s;
+	}
+
+	.zugewiesen-kreis:hover {
+		opacity: 0.8;
+	}
+
+	.zugewiesen-leer {
+		background: #ddd5c5;
+		color: #8a7d6e;
+		font-size: 0.8rem;
+		font-weight: 400;
+	}
+
+	.zuweisen-form {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+	}
+
+	.zuweisen-form input[type='text'] {
+		font-size: 0.7rem;
+		padding: 0.1rem 0.3rem;
+		border: 1px solid #ddd5c5;
+		border-radius: 4px;
+		background: #fdfaf4;
+		width: 80px;
+		color: #1a1a18;
+		font-family: 'Outfit', sans-serif;
 	}
 
 	.aufgabe-aktionen {

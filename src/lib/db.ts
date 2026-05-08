@@ -58,4 +58,17 @@ if (!spalten.some((s) => s.name === 'bild')) {
 	db.exec(`ALTER TABLE rezepte ADD COLUMN bild TEXT`);
 }
 
+const aufgabenSpalten = db.pragma('table_info(aufgaben)') as { name: string }[];
+if (!aufgabenSpalten.some((s) => s.name === 'zugewiesen_an')) {
+	db.exec(`ALTER TABLE aufgaben ADD COLUMN zugewiesen_an TEXT`);
+}
+
+// Migrate single-name values to JSON arrays
+db.exec(`
+  UPDATE aufgaben
+  SET zugewiesen_an = json_array(zugewiesen_an)
+  WHERE zugewiesen_an IS NOT NULL
+    AND NOT (zugewiesen_an LIKE '[%')
+`);
+
 export default db;
