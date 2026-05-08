@@ -12,28 +12,66 @@
 		geplant_fuer: string;
 		erledigt: number;
 		zugewiesen_an: string[];
+		beschreibung: string | null;
 	}
 
 	function fokussieren(element: HTMLElement) {
 		element.focus();
 	}
 
-	let { data }: { data: PageData & { aufgaben: Aufgabe[] } } = $props();
+	let {
+		data
+	}: { data: PageData & { aufgaben: Aufgabe[]; personen: string[]; titelVorschlaege: string[] } } =
+		$props();
 
 	let ansicht = $state<'woche' | 'monat'>('woche');
 	let bezugsDatum = $state(new Date());
 	let neueAufgabeOffen = $state(false);
-	let verschiebenId = $state<number | null>(null);
 	let zuweisenId = $state<number | null>(null);
 	let zuweisenWert = $state('');
 	let dragId = $state<number | null>(null);
 	let dragZielDatum = $state<string | null>(null);
 
+	// Modal state
+	let detailId = $state<number | null>(null);
+	let editTitel = $state('');
+	let editDauer = $state(15);
+	let editBeschreibung = $state('');
+	let editWiederholung = $state('einmalig');
+	let editTag = $state('');
+	let editMonat = $state('');
+	let editJahr = $state('');
+	let modalZuweisenOffen = $state(false);
+	let modalZuweisenWert = $state('');
+
+	const aufgabeDetail = $derived(
+		detailId != null ? (data.aufgaben.find((a) => a.id === detailId) ?? null) : null
+	);
+
+	$effect(() => {
+		if (detailId != null) {
+			document.body.style.overflow = 'hidden';
+		} else {
+			document.body.style.overflow = '';
+		}
+		return () => {
+			document.body.style.overflow = '';
+		};
+	});
+
 	function localDateStr(d: Date): string {
 		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 	}
 
+	function kapName(s: string): string {
+		return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+	}
+
 	const heute = $derived(localDateStr(new Date()));
+	const heuteParts = $derived(heute.split('-'));
+	const heuteJahr = $derived(heuteParts[0]);
+	const heuteMonat = $derived(String(parseInt(heuteParts[1])));
+	const heuteTag = $derived(String(parseInt(heuteParts[2])));
 
 	const wocheTage = $derived.by(() => {
 		const day = bezugsDatum.getDay();
@@ -149,7 +187,43 @@
 		await fetch('?/verschieben', { method: 'POST', body });
 		await invalidateAll();
 	}
+
+	function aufgabeKlick(aufgabe: Aufgabe) {
+		detailId = aufgabe.id;
+		editTitel = kapName(aufgabe.titel);
+		editDauer = aufgabe.dauer_minuten;
+		editBeschreibung = aufgabe.beschreibung ?? '';
+		editWiederholung = aufgabe.wiederholung;
+		const parts = aufgabe.geplant_fuer.split('-');
+		editJahr = parts[0];
+		editMonat = String(parseInt(parts[1]));
+		editTag = String(parseInt(parts[2]));
+		modalZuweisenOffen = false;
+		modalZuweisenWert = '';
+	}
+
+	function modalSchliessen() {
+		detailId = null;
+		modalZuweisenOffen = false;
+	}
 </script>
+
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape') modalSchliessen();
+	}}
+/>
+
+<datalist id="titel-liste">
+	{#each data.titelVorschlaege as t (t)}
+		<option value={kapName(t)}></option>
+	{/each}
+</datalist>
+<datalist id="personen-liste">
+	{#each data.personen as p (p)}
+		<option value={kapName(p)}></option>
+	{/each}
+</datalist>
 
 <svelte:head>
 	<title>Aufgaben – Rezeptbuch</title>
@@ -214,13 +288,14 @@
 				placeholder="Aufgabe (z.B. Staubsaugen)"
 				required
 				autocomplete="off"
+				list="titel-liste"
 			/>
 			<input
 				type="number"
 				name="dauer_minuten"
 				placeholder="Dauer (Min.)"
 				min="1"
-				value="20"
+				value=""
 				required
 			/>
 			<select name="wiederholung">
@@ -229,17 +304,47 @@
 				<option value="woechentlich">Wöchentlich</option>
 				<option value="monatlich">Monatlich</option>
 			</select>
-			<input
-				type="date"
-				name="geplant_fuer"
-				value={heute}
-				required
-			/>
+			<div class="datum-gruppe">
+				<input
+					type="text"
+					inputmode="numeric"
+					name="tag"
+					value={heuteTag}
+					maxlength="2"
+					placeholder="TT"
+					class="datum-teil datum-tag"
+					required
+				/>
+				<span class="datum-trenner">.</span>
+				<input
+					type="text"
+					inputmode="numeric"
+					name="monat"
+					value={heuteMonat}
+					maxlength="2"
+					placeholder="MM"
+					class="datum-teil datum-monat"
+					required
+				/>
+				<span class="datum-trenner">.</span>
+				<input
+					type="text"
+					inputmode="numeric"
+					name="jahr"
+					value={heuteJahr}
+					maxlength="4"
+					placeholder="JJJJ"
+					class="datum-teil datum-jahr"
+					required
+				/>
+			</div>
 			<input
 				type="text"
 				name="zugewiesen_an"
 				placeholder="Zugewiesen an"
 				maxlength="20"
+				list="personen-liste"
+				autocomplete="off"
 			/>
 			<button
 				type="submit"
@@ -275,13 +380,19 @@
 						draggable="true"
 						ondragstart={(e) => onDragStart(aufgabe.id, e)}
 					>
-						<div class="aufgabe-info">
-							<span class="aufgabe-titel-text">{aufgabe.titel}</span>
+						<div
+							class="aufgabe-info"
+							role="button"
+							tabindex="0"
+							onclick={() => aufgabeKlick(aufgabe)}
+							onkeydown={(e) => e.key === 'Enter' && aufgabeKlick(aufgabe)}
+						>
+							<span class="aufgabe-titel-text">{kapName(aufgabe.titel)}</span>
 							<span class="aufgabe-dauer">⏱ {aufgabe.dauer_minuten} Min.</span>
 						</div>
 
 						<div class="zugewiesen-zeile">
-							{#each aufgabe.zugewiesen_an as person}
+							{#each aufgabe.zugewiesen_an as person (person)}
 								<form
 									method="POST"
 									action="?/person_entfernen"
@@ -300,7 +411,7 @@
 									<button
 										type="submit"
 										class="zugewiesen-kreis"
-										title="{person} entfernen"
+										title="{kapName(person)} entfernen"
 										style="background: {kreisFarbe(person)}"
 									>
 										{person.slice(0, 2).toUpperCase()}
@@ -330,6 +441,7 @@
 										bind:value={zuweisenWert}
 										placeholder="Name"
 										maxlength="20"
+										list="personen-liste"
 										use:fokussieren
 									/>
 									<button
@@ -376,42 +488,13 @@
 									>
 								</form>
 								{#if ueberfaellig}
-									{#if verschiebenId === aufgabe.id}
-										<form
-											method="POST"
-											action="?/verschieben"
-											use:enhance
-											onsubmit={() => (verschiebenId = null)}
-										>
-											<input
-												type="hidden"
-												name="id"
-												value={aufgabe.id}
-											/>
-											<input
-												type="date"
-												name="neues_datum"
-												required
-											/>
-											<button
-												type="submit"
-												class="btn-aktion ok">OK</button
-											>
-											<button
-												type="button"
-												class="btn-aktion abbrechen"
-												onclick={() => (verschiebenId = null)}>✕</button
-											>
-										</form>
-									{:else}
-										<button
-											type="button"
-											class="btn-verschieben"
-											onclick={() => (verschiebenId = aufgabe.id)}
-										>
-											Verschieben
-										</button>
-									{/if}
+									<button
+										type="button"
+										class="btn-verschieben"
+										onclick={() => aufgabeKlick(aufgabe)}
+									>
+										Verschieben
+									</button>
 								{/if}
 							{:else}
 								<form
@@ -454,6 +537,274 @@
 		{/each}
 	</div>
 </main>
+
+{#if aufgabeDetail}
+	<div
+		class="modal-overlay"
+		onclick={modalSchliessen}
+		role="presentation"
+	>
+		<div
+			class="modal-panel"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
+			<div class="modal-kopf">
+				<span
+					class="modal-badge"
+					class:erledigt-badge={aufgabeDetail.erledigt === 1}
+				>
+					{aufgabeDetail.erledigt === 1 ? 'Erledigt' : 'Offen'}
+				</span>
+				<button
+					class="modal-schliessen"
+					onclick={modalSchliessen}
+					title="Schließen">✕</button
+				>
+			</div>
+
+			<form
+				method="POST"
+				action="?/bearbeiten"
+				use:enhance={() =>
+					async ({ update }) => {
+						await update({ reset: false });
+					}}
+				class="modal-form"
+			>
+				<input
+					type="hidden"
+					name="id"
+					value={aufgabeDetail.id}
+				/>
+
+				<input
+					class="modal-titel-input"
+					type="text"
+					name="titel"
+					bind:value={editTitel}
+					required
+					autocomplete="off"
+					list="titel-liste"
+				/>
+
+				<div class="modal-meta-zeile">
+					<div class="datum-gruppe">
+						<input
+							type="text"
+							inputmode="numeric"
+							name="tag"
+							bind:value={editTag}
+							maxlength="2"
+							placeholder="TT"
+							class="datum-teil datum-tag"
+							required
+						/>
+						<span class="datum-trenner">.</span>
+						<input
+							type="text"
+							inputmode="numeric"
+							name="monat"
+							bind:value={editMonat}
+							maxlength="2"
+							placeholder="MM"
+							class="datum-teil datum-monat"
+							required
+						/>
+						<span class="datum-trenner">.</span>
+						<input
+							type="text"
+							inputmode="numeric"
+							name="jahr"
+							bind:value={editJahr}
+							maxlength="4"
+							placeholder="JJJJ"
+							class="datum-teil datum-jahr"
+							required
+						/>
+					</div>
+
+					<div class="dauer-gruppe">
+						<input
+							type="number"
+							name="dauer_minuten"
+							bind:value={editDauer}
+							min="1"
+							class="dauer-input"
+						/>
+						<span class="dauer-label">Min.</span>
+					</div>
+
+					<select
+						name="wiederholung"
+						bind:value={editWiederholung}
+						class="wiederholung-select"
+					>
+						<option value="einmalig">Einmalig</option>
+						<option value="taeglich">Täglich</option>
+						<option value="woechentlich">Wöchentlich</option>
+						<option value="monatlich">Monatlich</option>
+					</select>
+				</div>
+
+				<textarea
+					name="beschreibung"
+					bind:value={editBeschreibung}
+					placeholder="Beschreibung hinzufügen..."
+					class="modal-beschreibung"
+					rows="3"
+				></textarea>
+
+				<button
+					type="submit"
+					class="btn-modal-speichern">Speichern</button
+				>
+			</form>
+
+			<div class="modal-personen-section">
+				<span class="modal-section-label">Zugewiesen an</span>
+				<div class="modal-personen">
+					{#each aufgabeDetail.zugewiesen_an as person (person)}
+						<form
+							method="POST"
+							action="?/person_entfernen"
+							use:enhance
+						>
+							<input
+								type="hidden"
+								name="id"
+								value={aufgabeDetail.id}
+							/>
+							<input
+								type="hidden"
+								name="name"
+								value={person}
+							/>
+							<button
+								type="submit"
+								class="modal-person-chip"
+							>
+								{kapName(person)} ✕
+							</button>
+						</form>
+					{/each}
+
+					{#if modalZuweisenOffen}
+						<form
+							method="POST"
+							action="?/person_hinzufuegen"
+							use:enhance={() =>
+								async ({ update }) => {
+									await update();
+									modalZuweisenOffen = false;
+									modalZuweisenWert = '';
+								}}
+							class="modal-zuweisen-form"
+						>
+							<input
+								type="hidden"
+								name="id"
+								value={aufgabeDetail.id}
+							/>
+							<input
+								type="text"
+								name="name"
+								bind:value={modalZuweisenWert}
+								placeholder="Name"
+								maxlength="20"
+								list="personen-liste"
+								autocomplete="off"
+								use:fokussieren
+							/>
+							<button
+								type="submit"
+								class="btn-modal-aktion ok">✓</button
+							>
+							<button
+								type="button"
+								class="btn-modal-aktion abbrechen"
+								onclick={() => (modalZuweisenOffen = false)}>✕</button
+							>
+						</form>
+					{:else}
+						<button
+							type="button"
+							class="modal-person-hinzufuegen"
+							onclick={() => {
+								modalZuweisenOffen = true;
+								modalZuweisenWert = '';
+							}}
+						>
+							+ Person
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<div class="modal-aktionen-zeile">
+				{#if aufgabeDetail.erledigt === 0}
+					<form
+						method="POST"
+						action="?/erledigen"
+						use:enhance={() =>
+							async ({ update }) => {
+								await update();
+								detailId = null;
+							}}
+					>
+						<input
+							type="hidden"
+							name="id"
+							value={aufgabeDetail.id}
+						/>
+						<button
+							type="submit"
+							class="btn-modal-erledigen">✓ Erledigen</button
+						>
+					</form>
+				{:else}
+					<form
+						method="POST"
+						action="?/rueckgaengig"
+						use:enhance
+					>
+						<input
+							type="hidden"
+							name="id"
+							value={aufgabeDetail.id}
+						/>
+						<button
+							type="submit"
+							class="btn-modal-rueckgaengig">↩ Rückgängig</button
+						>
+					</form>
+				{/if}
+				<form
+					method="POST"
+					action="?/loeschen"
+					use:enhance={() =>
+						async ({ update }) => {
+							await update();
+							detailId = null;
+						}}
+				>
+					<input
+						type="hidden"
+						name="id"
+						value={aufgabeDetail.id}
+					/>
+					<button
+						type="submit"
+						class="btn-modal-loeschen">✕ Löschen</button
+					>
+				</form>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	main {
@@ -577,7 +928,6 @@
 		border-color: #4a7c3f;
 	}
 
-	/* New chore form */
 	.neue-form {
 		display: flex;
 		flex-wrap: wrap;
@@ -621,10 +971,6 @@
 		width: 145px;
 	}
 
-	.neue-form input[type='date'] {
-		width: 150px;
-	}
-
 	.neue-form input[name='zugewiesen_an'] {
 		width: 130px;
 	}
@@ -645,6 +991,69 @@
 
 	.btn-speichern-aufgabe:hover {
 		background: #3d6528;
+	}
+
+	/* Date group (used in create form and modal) */
+	.datum-gruppe {
+		display: flex;
+		align-items: center;
+		border: 1.5px solid #ddd5c5;
+		border-radius: 8px;
+		overflow: hidden;
+		background: #f4f1eb;
+	}
+
+	.datum-teil {
+		border: none;
+		background: transparent;
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		color: #1a1a18;
+		text-align: center;
+		padding: 0.42rem 0.2rem;
+		outline: none;
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+
+	.datum-teil::-webkit-inner-spin-button,
+	.datum-teil::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+	}
+
+	.datum-tag,
+	.datum-monat {
+		width: 28px;
+	}
+
+	.datum-jahr {
+		width: 46px;
+	}
+
+	.datum-trenner {
+		color: #8a7d6e;
+		font-size: 0.9rem;
+		user-select: none;
+		padding: 0 1px;
+	}
+
+	/* Slightly larger date inputs in the neue-form context */
+	.neue-form .datum-gruppe {
+		border: 1.5px solid #ddd5c5;
+	}
+
+	.neue-form .datum-teil {
+		font-size: 0.9rem;
+		padding: 0.45rem 0.2rem;
+	}
+
+	.neue-form .datum-tag,
+	.neue-form .datum-monat {
+		width: 30px;
+	}
+
+	.neue-form .datum-jahr {
+		width: 50px;
 	}
 
 	/* Calendar grids */
@@ -716,7 +1125,6 @@
 		font-size: 0.78rem;
 	}
 
-	/* Chore cards */
 	.aufgabe-karte {
 		background: #f0ebe2;
 		border-radius: 6px;
@@ -747,6 +1155,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.1rem;
+		cursor: pointer;
+		user-select: none;
 	}
 
 	.aufgabe-titel-text {
@@ -760,7 +1170,6 @@
 		color: #8a7d6e;
 	}
 
-	/* Assignee circle */
 	.zugewiesen-zeile {
 		display: flex;
 		align-items: center;
@@ -888,14 +1297,362 @@
 		background: #fff3cc;
 	}
 
-	.aufgabe-aktionen input[type='date'] {
-		font-size: 0.7rem;
-		padding: 0.1rem 0.3rem;
-		border: 1px solid #ddd5c5;
-		border-radius: 4px;
+	/* ── Modal ─────────────────────────────────────────── */
+
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.38);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 200;
+		padding: 1rem;
+	}
+
+	.modal-panel {
 		background: #fdfaf4;
+		border-radius: 14px;
+		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+		width: 100%;
+		max-width: 460px;
+		max-height: 90vh;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modal-kopf {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem 1.25rem 0.75rem;
+		border-bottom: 1px solid #e5ddd0;
+		flex-shrink: 0;
+	}
+
+	.modal-badge {
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding: 0.2rem 0.65rem;
+		border-radius: 20px;
+		background: #d4edda;
+		color: #2c4a1e;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	.modal-badge.erledigt-badge {
+		background: #e8e0d6;
+		color: #6b6255;
+	}
+
+	.modal-schliessen {
+		background: transparent;
+		border: none;
+		font-size: 1rem;
+		color: #8a7d6e;
+		cursor: pointer;
+		padding: 0.25rem 0.5rem;
+		border-radius: 6px;
+		line-height: 1;
+		transition: background 0.15s;
+	}
+
+	.modal-schliessen:hover {
+		background: #f0ebe2;
+		color: #1a1a18;
+	}
+
+	.modal-form {
+		padding: 1.1rem 1.25rem 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+		border-bottom: 1px solid #e5ddd0;
+	}
+
+	.modal-titel-input {
+		font-family: 'Lora', serif;
+		font-size: 1.2rem;
+		font-weight: 600;
+		color: #1a1a18;
+		background: transparent;
+		border: none;
+		border-bottom: 2px solid transparent;
+		padding: 0.15rem 0;
+		width: 100%;
+		outline: none;
+		transition: border-color 0.15s;
+	}
+
+	.modal-titel-input:focus {
+		border-bottom-color: #4a7c3f;
+	}
+
+	.modal-meta-zeile {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.dauer-gruppe {
+		display: flex;
+		align-items: center;
+		border: 1.5px solid #ddd5c5;
+		border-radius: 8px;
+		overflow: hidden;
+		background: #f4f1eb;
+		padding-right: 0.5rem;
+	}
+
+	.dauer-input {
+		border: none;
+		background: transparent;
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		color: #1a1a18;
+		padding: 0.42rem 0.5rem;
+		width: 52px;
+		text-align: center;
+		outline: none;
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+
+	.dauer-input::-webkit-inner-spin-button,
+	.dauer-input::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+	}
+
+	.dauer-label {
+		font-size: 0.78rem;
+		color: #8a7d6e;
+		font-family: 'Outfit', sans-serif;
+	}
+
+	.wiederholung-select {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.82rem;
+		background: #f4f1eb;
+		border: 1.5px solid #ddd5c5;
+		border-radius: 8px;
+		padding: 0.42rem 0.6rem;
+		color: #1a1a18;
+		outline: none;
+		cursor: pointer;
+	}
+
+	.modal-beschreibung {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.9rem;
+		background: #f4f1eb;
+		border: 1.5px solid #ddd5c5;
+		border-radius: 8px;
+		padding: 0.65rem 0.75rem;
+		color: #1a1a18;
+		resize: vertical;
+		min-height: 80px;
+		outline: none;
+		transition: border-color 0.15s;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.modal-beschreibung:focus {
+		border-color: #4a7c3f;
+	}
+
+	.btn-modal-speichern {
+		align-self: flex-end;
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #fdfaf4;
+		background: #2c4a1e;
+		border: none;
+		border-radius: 8px;
+		padding: 0.5rem 1.3rem;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.btn-modal-speichern:hover {
+		background: #3d6528;
+	}
+
+	.modal-personen-section {
+		padding: 0.85rem 1.25rem;
+		border-bottom: 1px solid #e5ddd0;
+	}
+
+	.modal-section-label {
+		display: block;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #8a7d6e;
+		margin-bottom: 0.5rem;
+		font-family: 'Outfit', sans-serif;
+	}
+
+	.modal-personen {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		align-items: center;
+	}
+
+	.modal-personen form {
+		display: contents;
+	}
+
+	.modal-person-chip {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: #4a3f33;
+		background: #e8e0d6;
+		border: none;
+		border-radius: 20px;
+		padding: 0.3rem 0.7rem;
+		cursor: pointer;
+		transition:
+			background 0.15s,
+			color 0.15s;
+	}
+
+	.modal-person-chip:hover {
+		background: #fde8e8;
+		color: #c0392b;
+	}
+
+	.modal-person-hinzufuegen {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: #4a7c3f;
+		background: transparent;
+		border: 1.5px dashed #9dc495;
+		border-radius: 20px;
+		padding: 0.25rem 0.7rem;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.modal-person-hinzufuegen:hover {
+		background: rgba(74, 124, 63, 0.07);
+	}
+
+	.modal-zuweisen-form {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.modal-zuweisen-form input[type='text'] {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.82rem;
+		padding: 0.25rem 0.45rem;
+		border: 1.5px solid #ddd5c5;
+		border-radius: 8px;
+		background: #f4f1eb;
 		width: 110px;
 		color: #1a1a18;
+		outline: none;
+	}
+
+	.btn-modal-aktion {
+		border: none;
+		border-radius: 6px;
+		width: 26px;
+		height: 26px;
+		font-size: 0.78rem;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition: opacity 0.15s;
+	}
+
+	.btn-modal-aktion:hover {
+		opacity: 0.75;
+	}
+
+	.btn-modal-aktion.ok {
+		background: #2c4a1e;
+		color: #fdfaf4;
+	}
+
+	.btn-modal-aktion.abbrechen {
+		background: #e8e0d6;
+		color: #5a4a3a;
+	}
+
+	.modal-aktionen-zeile {
+		padding: 0.85rem 1.25rem;
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.modal-aktionen-zeile form {
+		display: contents;
+	}
+
+	.btn-modal-erledigen {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		font-weight: 500;
+		color: #2c4a1e;
+		background: #d4edda;
+		border: none;
+		border-radius: 8px;
+		padding: 0.5rem 1.1rem;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.btn-modal-erledigen:hover {
+		background: #b8e0c2;
+	}
+
+	.btn-modal-rueckgaengig {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		font-weight: 500;
+		color: #5a4a3a;
+		background: #e8e0d6;
+		border: none;
+		border-radius: 8px;
+		padding: 0.5rem 1.1rem;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.btn-modal-rueckgaengig:hover {
+		background: #d8cfbf;
+	}
+
+	.btn-modal-loeschen {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.88rem;
+		font-weight: 500;
+		color: #c0392b;
+		background: #fde8e8;
+		border: none;
+		border-radius: 8px;
+		padding: 0.5rem 1.1rem;
+		cursor: pointer;
+		transition: background 0.15s;
+		margin-left: auto;
+	}
+
+	.btn-modal-loeschen:hover {
+		background: #f8c8c8;
 	}
 
 	@media (max-width: 700px) {
@@ -929,6 +1686,17 @@
 
 		.monat-grid .tag-spalte {
 			grid-column-start: auto !important;
+		}
+
+		.modal-overlay {
+			padding: 0;
+			align-items: flex-end;
+		}
+
+		.modal-panel {
+			max-width: 100%;
+			border-radius: 16px 16px 0 0;
+			max-height: 88vh;
 		}
 	}
 </style>

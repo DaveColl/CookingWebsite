@@ -216,6 +216,7 @@
 						bind:value={zutat.name}
 						oninput={() => zutatSuchen(zutat.name, zutat.id)}
 						placeholder="Zutat"
+						autocomplete="off"
 						required
 					/>
 					<datalist id="vorschlaege-{zutat.id}"></datalist>

@@ -71,4 +71,37 @@ db.exec(`
     AND NOT (zugewiesen_an LIKE '[%')
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS personen (
+    id   INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL
+  );
+`);
+
+const aufgabenSpalten2 = db.pragma('table_info(aufgaben)') as { name: string }[];
+if (!aufgabenSpalten2.some((s) => s.name === 'beschreibung')) {
+	db.exec(`ALTER TABLE aufgaben ADD COLUMN beschreibung TEXT`);
+}
+
+// Normalize existing zugewiesen_an values to lowercase
+db.exec(`
+  UPDATE aufgaben
+  SET zugewiesen_an = (
+    SELECT json_group_array(lower(value))
+    FROM json_each(zugewiesen_an)
+  )
+  WHERE zugewiesen_an IS NOT NULL;
+`);
+
+// Normalize existing task titles to lowercase
+db.exec(`UPDATE aufgaben SET titel = lower(titel) WHERE titel != lower(titel);`);
+
+// Populate personen from existing task assignments
+db.exec(`
+  INSERT OR IGNORE INTO personen (name)
+  SELECT DISTINCT lower(value)
+  FROM aufgaben, json_each(zugewiesen_an)
+  WHERE zugewiesen_an IS NOT NULL;
+`);
+
 export default db;
