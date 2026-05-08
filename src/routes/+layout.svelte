@@ -43,17 +43,6 @@
 		min-height: 100vh;
 	}
 
-	:global(input[type='number']::-webkit-outer-spin-button),
-	:global(input[type='number']::-webkit-inner-spin-button) {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
-	:global(input[type='number']) {
-		-moz-appearance: textfield;
-		appearance: textfield;
-	}
-
 	:global(.seite-kopf) {
 		margin-bottom: 2.5rem;
 		padding-bottom: 2rem;
@@ -118,6 +107,15 @@
 		transition:
 			border-color 0.18s,
 			box-shadow 0.18s;
+	}
+	:global(input[type='number']) {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+	:global(input[type='number']::-webkit-outer-spin-button),
+	:global(input[type='number']::-webkit-inner-spin-button) {
+		-webkit-appearance: none;
+		margin: 0;
 	}
 	:global(input:focus),
 	:global(textarea:focus),

@@ -24,6 +24,21 @@
 	}: { data: PageData & { aufgaben: Aufgabe[]; personen: string[]; titelVorschlaege: string[] } } =
 		$props();
 
+	let dataSSE = $state<{
+		aufgaben: Aufgabe[];
+		personen: string[];
+		titelVorschlaege: string[];
+	} | null>(null);
+	const activeData = $derived(dataSSE ?? data);
+
+	$effect(() => {
+		const es = new EventSource('/api/aufgaben/stream');
+		es.onmessage = (e) => {
+			dataSSE = JSON.parse(e.data);
+		};
+		return () => es.close();
+	});
+
 	let ansicht = $state<'woche' | 'monat'>('woche');
 	let bezugsDatum = $state(new Date());
 	let neueAufgabeOffen = $state(false);
@@ -45,7 +60,7 @@
 	let modalZuweisenWert = $state('');
 
 	const aufgabeDetail = $derived(
-		detailId != null ? (data.aufgaben.find((a) => a.id === detailId) ?? null) : null
+		detailId != null ? (activeData.aufgaben.find((a) => a.id === detailId) ?? null) : null
 	);
 
 	$effect(() => {
@@ -97,7 +112,7 @@
 	});
 
 	const aufgabenNachDatum = $derived(
-		data.aufgaben.reduce((map: Map<string, Aufgabe[]>, a: Aufgabe) => {
+		activeData.aufgaben.reduce((map: Map<string, Aufgabe[]>, a: Aufgabe) => {
 			const list = map.get(a.geplant_fuer) ?? [];
 			list.push(a);
 			map.set(a.geplant_fuer, list);
@@ -215,12 +230,12 @@
 />
 
 <datalist id="titel-liste">
-	{#each data.titelVorschlaege as t (t)}
+	{#each activeData.titelVorschlaege as t (t)}
 		<option value={kapName(t)}></option>
 	{/each}
 </datalist>
 <datalist id="personen-liste">
-	{#each data.personen as p (p)}
+	{#each activeData.personen as p (p)}
 		<option value={kapName(p)}></option>
 	{/each}
 </datalist>
@@ -1675,9 +1690,13 @@
 			align-items: flex-start;
 		}
 
-		.woche-grid,
-		.monat-grid {
+		.woche-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.monat-grid {
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.2rem;
 		}
 
 		.tag-spalte {
@@ -1686,6 +1705,48 @@
 
 		.monat-grid .tag-spalte {
 			grid-column-start: auto !important;
+			padding: 0.25rem 0.15rem;
+			min-height: 50px;
+			gap: 0.15rem;
+		}
+
+		.monat-grid .tag-wochentag {
+			display: none;
+		}
+
+		.monat-grid .tag-kopf {
+			justify-content: center;
+			margin-bottom: 0.15rem;
+		}
+
+		.monat-grid .tag-nummer {
+			font-size: 0.75rem;
+		}
+
+		.monat-grid .tag-spalte.heute .tag-nummer {
+			width: 18px;
+			height: 18px;
+			font-size: 0.7rem;
+		}
+
+		.monat-grid .aufgabe-karte {
+			padding: 0.15rem 0.2rem;
+			border-radius: 4px;
+		}
+
+		.monat-grid .aufgabe-titel-text {
+			font-size: 0.6rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			display: block;
+			line-height: 1.2;
+		}
+
+		.monat-grid .aufgabe-dauer,
+		.monat-grid .zugewiesen-zeile,
+		.monat-grid .aufgabe-aktionen {
+			display: none !important;
 		}
 
 		.modal-overlay {
