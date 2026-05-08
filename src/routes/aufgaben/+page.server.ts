@@ -77,7 +77,13 @@ export const actions: Actions = {
 				const naechstes = naechstesDatum(aufgabe.geplant_fuer, aufgabe.wiederholung);
 				db.prepare(
 					'INSERT INTO aufgaben (titel, dauer_minuten, wiederholung, geplant_fuer, zugewiesen_an) VALUES (?, ?, ?, ?, ?)'
-				).run(aufgabe.titel, aufgabe.dauer_minuten, aufgabe.wiederholung, naechstes, aufgabe.zugewiesen_an);
+				).run(
+					aufgabe.titel,
+					aufgabe.dauer_minuten,
+					aufgabe.wiederholung,
+					naechstes,
+					aufgabe.zugewiesen_an
+				);
 			}
 		})();
 

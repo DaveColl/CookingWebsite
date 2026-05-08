@@ -40,7 +40,11 @@
 		const diff = day === 0 ? -6 : 1 - day;
 		return Array.from({ length: 7 }, (_, i) =>
 			localDateStr(
-				new Date(bezugsDatum.getFullYear(), bezugsDatum.getMonth(), bezugsDatum.getDate() + diff + i)
+				new Date(
+					bezugsDatum.getFullYear(),
+					bezugsDatum.getMonth(),
+					bezugsDatum.getDate() + diff + i
+				)
 			)
 		);
 	});
@@ -49,7 +53,9 @@
 		const year = bezugsDatum.getFullYear();
 		const month = bezugsDatum.getMonth();
 		const daysInMonth = new Date(year, month + 1, 0).getDate();
-		return Array.from({ length: daysInMonth }, (_, i) => localDateStr(new Date(year, month, i + 1)));
+		return Array.from({ length: daysInMonth }, (_, i) =>
+			localDateStr(new Date(year, month, i + 1))
+		);
 	});
 
 	const aufgabenNachDatum = $derived(
@@ -281,8 +287,16 @@
 									action="?/person_entfernen"
 									use:enhance
 								>
-									<input type="hidden" name="id" value={aufgabe.id} />
-									<input type="hidden" name="name" value={person} />
+									<input
+										type="hidden"
+										name="id"
+										value={aufgabe.id}
+									/>
+									<input
+										type="hidden"
+										name="name"
+										value={person}
+									/>
 									<button
 										type="submit"
 										class="zugewiesen-kreis"
@@ -305,7 +319,11 @@
 										}}
 									class="zuweisen-form"
 								>
-									<input type="hidden" name="id" value={aufgabe.id} />
+									<input
+										type="hidden"
+										name="id"
+										value={aufgabe.id}
+									/>
 									<input
 										type="text"
 										name="name"
@@ -314,7 +332,10 @@
 										maxlength="20"
 										use:fokussieren
 									/>
-									<button type="submit" class="btn-aktion ok">✓</button>
+									<button
+										type="submit"
+										class="btn-aktion ok">✓</button
+									>
 									<button
 										type="button"
 										class="btn-aktion abbrechen"
