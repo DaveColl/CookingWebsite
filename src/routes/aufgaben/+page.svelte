@@ -11,6 +11,7 @@
 		wiederholung: string;
 		geplant_fuer: string;
 		erledigt: number;
+		erstellt: number;
 		zugewiesen_an: string[];
 		beschreibung: string | null;
 	}
@@ -316,6 +317,7 @@
 						wiederholung,
 						geplant_fuer,
 						erledigt: 0,
+						erstellt: Date.now(),
 						zugewiesen_an,
 						beschreibung: null
 					}
