@@ -13,13 +13,17 @@
 		erstellt: number;
 	}
 
-	let artikelSSE = $state<Artikel[] | null>(null);
-	const artikel = $derived(artikelSSE ?? data.artikel);
+	// svelte-ignore state_referenced_locally
+	let artikel = $state<Artikel[]>(data.artikel);
+
+	$effect(() => {
+		artikel = data.artikel;
+	});
 
 	$effect(() => {
 		const es = new EventSource('/api/einkauf/stream');
 		es.onmessage = (e) => {
-			artikelSSE = JSON.parse(e.data);
+			artikel = JSON.parse(e.data);
 		};
 		return () => es.close();
 	});
@@ -41,7 +45,25 @@
 	method="POST"
 	action="?/hinzufuegen"
 	class="hinzufuegen-form"
-	use:enhance
+	use:enhance={({ formData }) => {
+		const name = formData.get('name');
+		const menge = formData.get('menge');
+		if (name) {
+			artikel = [
+				...artikel,
+				{
+					id: Math.random(),
+					name: name.toString(),
+					menge: menge ? menge.toString() : null,
+					erledigt: 0,
+					erstellt: Date.now()
+				}
+			];
+		}
+		return async ({ update }) => {
+			await update();
+		};
+	}}
 >
 	<div class="hinzufuegen-zeile">
 		<input
@@ -77,7 +99,16 @@
 				<form
 					method="POST"
 					action="?/umschalten"
-					use:enhance
+					use:enhance={({ formData }) => {
+						const id = Number(formData.get('id'));
+						const index = artikel.findIndex((a) => a.id === id);
+						if (index !== -1) {
+							artikel[index].erledigt = artikel[index].erledigt === 0 ? 1 : 0;
+						}
+						return async ({ update }) => {
+							await update({ reset: false });
+						};
+					}}
 				>
 					<input
 						type="hidden"
@@ -99,7 +130,13 @@
 				<form
 					method="POST"
 					action="?/entfernen"
-					use:enhance
+					use:enhance={({ formData }) => {
+						const id = Number(formData.get('id'));
+						artikel = artikel.filter((a) => a.id !== id);
+						return async ({ update }) => {
+							await update({ reset: false });
+						};
+					}}
 					class="entfernen-form"
 				>
 					<input
@@ -125,7 +162,12 @@
 			<form
 				method="POST"
 				action="?/erledigtLoeschen"
-				use:enhance
+				use:enhance={() => {
+					artikel = artikel.filter((a) => a.erledigt === 0);
+					return async ({ update }) => {
+						await update({ reset: false });
+					};
+				}}
 				class="inline-form"
 			>
 				<button
@@ -140,7 +182,16 @@
 					<form
 						method="POST"
 						action="?/umschalten"
-						use:enhance
+						use:enhance={({ formData }) => {
+							const id = Number(formData.get('id'));
+							const index = artikel.findIndex((a) => a.id === id);
+							if (index !== -1) {
+								artikel[index].erledigt = artikel[index].erledigt === 0 ? 1 : 0;
+							}
+							return async ({ update }) => {
+								await update({ reset: false });
+							};
+						}}
 					>
 						<input
 							type="hidden"
@@ -162,7 +213,13 @@
 					<form
 						method="POST"
 						action="?/entfernen"
-						use:enhance
+						use:enhance={({ formData }) => {
+							const id = Number(formData.get('id'));
+							artikel = artikel.filter((a) => a.id !== id);
+							return async ({ update }) => {
+								await update({ reset: false });
+							};
+						}}
 						class="entfernen-form"
 					>
 						<input

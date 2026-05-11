@@ -24,17 +24,17 @@
 	}: { data: PageData & { aufgaben: Aufgabe[]; personen: string[]; titelVorschlaege: string[] } } =
 		$props();
 
-	let dataSSE = $state<{
-		aufgaben: Aufgabe[];
-		personen: string[];
-		titelVorschlaege: string[];
-	} | null>(null);
-	const activeData = $derived(dataSSE ?? data);
+	// svelte-ignore state_referenced_locally
+	let activeData = $state(data);
+
+	$effect(() => {
+		activeData = data;
+	});
 
 	$effect(() => {
 		const es = new EventSource('/api/aufgaben/stream');
 		es.onmessage = (e) => {
-			dataSSE = JSON.parse(e.data);
+			activeData = JSON.parse(e.data);
 		};
 		return () => es.close();
 	});
@@ -196,11 +196,17 @@
 		if (dragId === null) return;
 		const id = dragId;
 		dragId = null;
+
+		// Optimistic update
+		const index = activeData.aufgaben.findIndex((a) => a.id === id);
+		if (index !== -1) {
+			activeData.aufgaben[index].geplant_fuer = datum;
+		}
+
 		const body = new FormData();
 		body.append('id', String(id));
 		body.append('neues_datum', datum);
-		await fetch('?/verschieben', { method: 'POST', body });
-		await invalidateAll();
+		fetch('?/verschieben', { method: 'POST', body }).then(() => invalidateAll());
 	}
 
 	function aufgabeKlick(aufgabe: Aufgabe) {
@@ -290,11 +296,36 @@
 		<form
 			method="POST"
 			action="?/erstellen"
-			use:enhance={() =>
-				async ({ update }) => {
-					await update();
+			use:enhance={({ formData }) => {
+				const titel = formData.get('titel')?.toString() || '';
+				const dauer_minuten = Number(formData.get('dauer_minuten'));
+				const wiederholung = formData.get('wiederholung')?.toString() || 'einmalig';
+				const jahr = formData.get('jahr')?.toString() || '';
+				const monat = formData.get('monat')?.toString() || '';
+				const tag = formData.get('tag')?.toString() || '';
+				const geplant_fuer = `${jahr}-${monat.padStart(2, '0')}-${tag.padStart(2, '0')}`;
+				const zugewiesen_an_raw = formData.get('zugewiesen_an')?.toString();
+				const zugewiesen_an = zugewiesen_an_raw ? [zugewiesen_an_raw] : [];
+
+				activeData.aufgaben = [
+					...activeData.aufgaben,
+					{
+						id: Math.random(),
+						titel,
+						dauer_minuten,
+						wiederholung,
+						geplant_fuer,
+						erledigt: 0,
+						zugewiesen_an,
+						beschreibung: null
+					}
+				];
+
+				return async ({ update }) => {
+					await update({ reset: true });
 					neueAufgabeOffen = false;
-				}}
+				};
+			}}
 			class="neue-form"
 		>
 			<input
@@ -411,7 +442,19 @@
 								<form
 									method="POST"
 									action="?/person_entfernen"
-									use:enhance
+									use:enhance={({ formData }) => {
+										const id = Number(formData.get('id'));
+										const name = formData.get('name')?.toString() || '';
+										const index = activeData.aufgaben.findIndex((a) => a.id === id);
+										if (index !== -1) {
+											activeData.aufgaben[index].zugewiesen_an = activeData.aufgaben[
+												index
+											].zugewiesen_an.filter((p) => p !== name);
+										}
+										return async ({ update }) => {
+											await update({ reset: false });
+										};
+									}}
 								>
 									<input
 										type="hidden"
@@ -438,11 +481,26 @@
 								<form
 									method="POST"
 									action="?/person_hinzufuegen"
-									use:enhance={() =>
-										async ({ update }) => {
-											await update();
+									use:enhance={({ formData }) => {
+										const id = Number(formData.get('id'));
+										const name = formData.get('name')?.toString().trim();
+										if (name) {
+											const index = activeData.aufgaben.findIndex((a) => a.id === id);
+											if (
+												index !== -1 &&
+												!activeData.aufgaben[index].zugewiesen_an.includes(name)
+											) {
+												activeData.aufgaben[index].zugewiesen_an = [
+													...activeData.aufgaben[index].zugewiesen_an,
+													name
+												];
+											}
+										}
+										return async ({ update }) => {
+											await update({ reset: false });
 											zuweisenId = null;
-										}}
+										};
+									}}
 									class="zuweisen-form"
 								>
 									<input
@@ -489,7 +547,16 @@
 								<form
 									method="POST"
 									action="?/erledigen"
-									use:enhance
+									use:enhance={({ formData }) => {
+										const id = Number(formData.get('id'));
+										const index = activeData.aufgaben.findIndex((a) => a.id === id);
+										if (index !== -1) {
+											activeData.aufgaben[index].erledigt = 1;
+										}
+										return async ({ update }) => {
+											await update({ reset: false });
+										};
+									}}
 								>
 									<input
 										type="hidden"
@@ -515,7 +582,16 @@
 								<form
 									method="POST"
 									action="?/rueckgaengig"
-									use:enhance
+									use:enhance={({ formData }) => {
+										const id = Number(formData.get('id'));
+										const index = activeData.aufgaben.findIndex((a) => a.id === id);
+										if (index !== -1) {
+											activeData.aufgaben[index].erledigt = 0;
+										}
+										return async ({ update }) => {
+											await update({ reset: false });
+										};
+									}}
 								>
 									<input
 										type="hidden"
@@ -532,7 +608,13 @@
 							<form
 								method="POST"
 								action="?/loeschen"
-								use:enhance
+								use:enhance={({ formData }) => {
+									const id = Number(formData.get('id'));
+									activeData.aufgaben = activeData.aufgaben.filter((a) => a.id !== id);
+									return async ({ update }) => {
+										await update({ reset: false });
+									};
+								}}
 							>
 								<input
 									type="hidden"
@@ -584,10 +666,33 @@
 			<form
 				method="POST"
 				action="?/bearbeiten"
-				use:enhance={() =>
-					async ({ update }) => {
+				use:enhance={({ formData }) => {
+					const id = Number(formData.get('id'));
+					const titel = formData.get('titel')?.toString() || '';
+					const dauer_minuten = Number(formData.get('dauer_minuten'));
+					const beschreibung = formData.get('beschreibung')?.toString() || null;
+					const wiederholung = formData.get('wiederholung')?.toString() || 'einmalig';
+					const jahr = formData.get('jahr')?.toString() || '';
+					const monat = formData.get('monat')?.toString() || '';
+					const tag = formData.get('tag')?.toString() || '';
+					const geplant_fuer = `${jahr}-${monat.padStart(2, '0')}-${tag.padStart(2, '0')}`;
+
+					const index = activeData.aufgaben.findIndex((a) => a.id === id);
+					if (index !== -1) {
+						activeData.aufgaben[index] = {
+							...activeData.aufgaben[index],
+							titel,
+							dauer_minuten,
+							beschreibung,
+							wiederholung,
+							geplant_fuer
+						};
+					}
+
+					return async ({ update }) => {
 						await update({ reset: false });
-					}}
+					};
+				}}
 				class="modal-form"
 			>
 				<input
@@ -686,7 +791,19 @@
 						<form
 							method="POST"
 							action="?/person_entfernen"
-							use:enhance
+							use:enhance={({ formData }) => {
+								const id = Number(formData.get('id'));
+								const name = formData.get('name')?.toString() || '';
+								const index = activeData.aufgaben.findIndex((a) => a.id === id);
+								if (index !== -1) {
+									activeData.aufgaben[index].zugewiesen_an = activeData.aufgaben[
+										index
+									].zugewiesen_an.filter((p) => p !== name);
+								}
+								return async ({ update }) => {
+									await update({ reset: false });
+								};
+							}}
 						>
 							<input
 								type="hidden"
@@ -711,12 +828,24 @@
 						<form
 							method="POST"
 							action="?/person_hinzufuegen"
-							use:enhance={() =>
-								async ({ update }) => {
-									await update();
+							use:enhance={({ formData }) => {
+								const id = Number(formData.get('id'));
+								const name = formData.get('name')?.toString().trim();
+								if (name) {
+									const index = activeData.aufgaben.findIndex((a) => a.id === id);
+									if (index !== -1 && !activeData.aufgaben[index].zugewiesen_an.includes(name)) {
+										activeData.aufgaben[index].zugewiesen_an = [
+											...activeData.aufgaben[index].zugewiesen_an,
+											name
+										];
+									}
+								}
+								return async ({ update }) => {
+									await update({ reset: false });
 									modalZuweisenOffen = false;
 									modalZuweisenWert = '';
-								}}
+								};
+							}}
 							class="modal-zuweisen-form"
 						>
 							<input
@@ -764,11 +893,17 @@
 					<form
 						method="POST"
 						action="?/erledigen"
-						use:enhance={() =>
-							async ({ update }) => {
-								await update();
+						use:enhance={({ formData }) => {
+							const id = Number(formData.get('id'));
+							const index = activeData.aufgaben.findIndex((a) => a.id === id);
+							if (index !== -1) {
+								activeData.aufgaben[index].erledigt = 1;
+							}
+							return async ({ update }) => {
+								await update({ reset: false });
 								detailId = null;
-							}}
+							};
+						}}
 					>
 						<input
 							type="hidden"
@@ -784,7 +919,16 @@
 					<form
 						method="POST"
 						action="?/rueckgaengig"
-						use:enhance
+						use:enhance={({ formData }) => {
+							const id = Number(formData.get('id'));
+							const index = activeData.aufgaben.findIndex((a) => a.id === id);
+							if (index !== -1) {
+								activeData.aufgaben[index].erledigt = 0;
+							}
+							return async ({ update }) => {
+								await update({ reset: false });
+							};
+						}}
 					>
 						<input
 							type="hidden"
@@ -800,11 +944,14 @@
 				<form
 					method="POST"
 					action="?/loeschen"
-					use:enhance={() =>
-						async ({ update }) => {
-							await update();
+					use:enhance={({ formData }) => {
+						const id = Number(formData.get('id'));
+						activeData.aufgaben = activeData.aufgaben.filter((a) => a.id !== id);
+						return async ({ update }) => {
+							await update({ reset: false });
 							detailId = null;
-						}}
+						};
+					}}
 				>
 					<input
 						type="hidden"
