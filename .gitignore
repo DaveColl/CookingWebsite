@@ -26,3 +26,5 @@ rezepte.db
 # Uploaded recipe images
 static/uploads/*
 !static/uploads/.gitkeep
+migrate.js
+static/uploads
