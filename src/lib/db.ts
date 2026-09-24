@@ -10,7 +10,9 @@ db.exec(`
     titel             TEXT    UNIQUE NOT NULL,
     portionen         INTEGER NOT NULL,
     zubereitungszeit  INTEGER NOT NULL,
-    anleitung         TEXT    NOT NULL
+    anleitung         TEXT    NOT NULL,
+    kategorie         TEXT    NOT NULL DEFAULT 'mittagessen'
+      CHECK(kategorie IN ('mittagessen', 'nachtisch'))
   );
 
   CREATE TABLE IF NOT EXISTS zutaten (
@@ -56,6 +58,14 @@ db.exec(`
 const spalten = db.pragma('table_info(rezepte)') as { name: string }[];
 if (!spalten.some((s) => s.name === 'bild')) {
 	db.exec(`ALTER TABLE rezepte ADD COLUMN bild TEXT`);
+}
+
+// Kategorie (Mittagessen/Nachtisch); bestehende Rezepte werden Mittagessen
+if (!spalten.some((s) => s.name === 'kategorie')) {
+	db.exec(`
+    ALTER TABLE rezepte ADD COLUMN kategorie TEXT NOT NULL DEFAULT 'mittagessen'
+      CHECK(kategorie IN ('mittagessen', 'nachtisch'))
+  `);
 }
 
 const aufgabenSpalten = db.pragma('table_info(aufgaben)') as { name: string }[];

@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import RezeptFormular from '$lib/components/RezeptFormular.svelte';
+	import type { Kategorie } from '$lib/kategorien';
+	import type { ActionData, PageData } from './$types';
 
 	interface ImportierteWerte {
 		titel?: string;
@@ -10,7 +13,20 @@
 		bild?: string | null;
 	}
 
-	let { form } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// Auswahl lebt hier, damit sie beim URL-Import (Formular wird neu erzeugt) erhalten bleibt.
+	// Vorrang: zuletzt abgeschickte Auswahl, sonst ?kategorie= aus der URL.
+	let kategorie = $state<Kategorie>(untrack(() => form?.werte?.kategorie ?? data.kategorie));
+
+	// Clientseitige Navigation auf dieselbe Seite mit anderem ?kategorie= übernimmt die Vorauswahl
+	let letzteUrlKategorie = untrack(() => data.kategorie);
+	$effect(() => {
+		if (data.kategorie !== letzteUrlKategorie) {
+			letzteUrlKategorie = data.kategorie;
+			kategorie = data.kategorie;
+		}
+	});
 
 	let urlOffen = $state(false);
 	let importUrl = $state('');
@@ -91,6 +107,7 @@
 		{form}
 		startWerte={importierteWerte}
 		vorhandenesImportBild={importierteWerte?.bild}
+		bind:kategorie
 	/>
 {/key}
 

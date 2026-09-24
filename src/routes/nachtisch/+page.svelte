@@ -1,4 +1,4 @@
-<!-- src/routes/rezepte/+page.svelte -->
+<!-- src/routes/nachtisch/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
 	import RezeptListe from '$lib/components/RezeptListe.svelte';
@@ -8,5 +8,5 @@
 
 <RezeptListe
 	rezepte={data.rezepte}
-	kategorie="mittagessen"
+	kategorie="nachtisch"
 />

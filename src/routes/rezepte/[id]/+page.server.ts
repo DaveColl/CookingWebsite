@@ -5,6 +5,7 @@ import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import db from '$lib/db';
+import { istKategorie, KATEGORIE_PFAD, STANDARD_KATEGORIE, type Kategorie } from '$lib/kategorien';
 
 interface Rezept {
 	id: number;
@@ -13,6 +14,7 @@ interface Rezept {
 	zubereitungszeit: number;
 	anleitung: string;
 	bild: string | null;
+	kategorie: Kategorie;
 }
 
 interface ZutatZeile {
@@ -77,6 +79,7 @@ export const actions: Actions = {
 		const portionen = Number(formData.get('portionen'));
 		const zubereitungszeit = Number(formData.get('zubereitungszeit'));
 		const anleitung = formData.get('anleitung')?.toString().trim();
+		const kategorie = formData.get('kategorie')?.toString();
 
 		const zutatNamen = formData.getAll('zutat_name').map(String);
 		const zutatMengen = formData.getAll('zutat_menge').map(Number);
@@ -94,6 +97,12 @@ export const actions: Actions = {
 				erfolg: false,
 				message: 'Füll die Felder korrekt aus (nur ganze Zahlen > 0).',
 				werte: { titel, portionen, zubereitungszeit, anleitung }
+			};
+		}
+		if (!istKategorie(kategorie)) {
+			return {
+				erfolg: false,
+				message: 'Bitte wähle aus, ob das Rezept zu Mittagessen oder Nachtisch gehört.'
 			};
 		}
 		if (zutatNamen.length === 0 || zutatNamen.some((n) => !n.trim())) {
@@ -126,8 +135,8 @@ export const actions: Actions = {
 		try {
 			db.transaction(() => {
 				db.prepare(
-					`UPDATE rezepte SET titel=?, portionen=?, zubereitungszeit=?, anleitung=?, bild=? WHERE id=?`
-				).run(titel, portionen, zubereitungszeit, anleitung, bildPfad, id);
+					`UPDATE rezepte SET titel=?, portionen=?, zubereitungszeit=?, anleitung=?, bild=?, kategorie=? WHERE id=?`
+				).run(titel, portionen, zubereitungszeit, anleitung, bildPfad, kategorie, id);
 
 				db.prepare('DELETE FROM rezepte_zutaten WHERE rezept_id=?').run(id);
 
@@ -160,14 +169,15 @@ export const actions: Actions = {
 		const id = Number(params.id);
 		if (!Number.isInteger(id) || id <= 0) error(400);
 
-		const rezept = db.prepare('SELECT bild FROM rezepte WHERE id = ?').get(id) as
-			| { bild: string | null }
+		const rezept = db.prepare('SELECT bild, kategorie FROM rezepte WHERE id = ?').get(id) as
+			| { bild: string | null; kategorie: Kategorie }
 			| undefined;
 
 		db.prepare('DELETE FROM rezepte WHERE id = ?').run(id);
 		verwaistZutatenLoeschen();
 		await alteBildLoeschen(rezept?.bild ?? null);
 
-		redirect(303, '/rezepte');
+		// Zurück auf die Liste, in der das Rezept stand
+		redirect(303, KATEGORIE_PFAD[rezept?.kategorie ?? STANDARD_KATEGORIE]);
 	}
 };

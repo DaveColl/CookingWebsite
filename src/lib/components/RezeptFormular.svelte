@@ -1,6 +1,14 @@
 <!-- src/lib/components/RezeptFormular.svelte -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { resolve } from '$app/paths';
+	import {
+		KATEGORIEN,
+		KATEGORIE_LABEL,
+		KATEGORIE_PFAD,
+		STANDARD_KATEGORIE,
+		type Kategorie
+	} from '$lib/kategorien';
 
 	interface RezeptWerte {
 		titel?: string;
@@ -8,6 +16,7 @@
 		zubereitungszeit?: number | string;
 		anleitung?: string;
 		zutaten?: ZutatDaten[];
+		kategorie?: Kategorie;
 	}
 	interface ZutatDaten {
 		name?: string;
@@ -33,6 +42,8 @@
 		buttonText?: string;
 		currentBild?: string | null;
 		vorhandenesImportBild?: string | null;
+		/** Gewählte Kategorie; per bind:kategorie von außen haltbar (z. B. über URL-Import hinweg) */
+		kategorie?: Kategorie;
 	}
 
 	const einheitenKonfig: EinheitKonfig[] = [
@@ -65,7 +76,8 @@
 		startWerte,
 		buttonText = 'Rezept speichern',
 		currentBild = null,
-		vorhandenesImportBild = null
+		vorhandenesImportBild = null,
+		kategorie = $bindable(STANDARD_KATEGORIE)
 	}: FormularProps = $props();
 	let bildDateiname = $state('');
 
@@ -115,7 +127,16 @@
 	<p class="meldung-fehler">{form.message}</p>
 {/if}
 {#if form?.erfolg}
-	<p class="meldung-erfolg">Rezept wurde gespeichert!</p>
+	<p class="meldung-erfolg">
+		Rezept wurde gespeichert!
+		{#if form.werte?.kategorie}
+			<a
+				class="erfolg-link"
+				href={resolve(KATEGORIE_PFAD[form.werte.kategorie])}
+				>Zu {KATEGORIE_LABEL[form.werte.kategorie]} →</a
+			>
+		{/if}
+	</p>
 {/if}
 
 <form
@@ -136,6 +157,24 @@
 			required
 		/>
 	</div>
+
+	<fieldset class="kategorie-auswahl">
+		<legend class="kategorie-legende">Kategorie</legend>
+		<div class="segmente">
+			{#each KATEGORIEN as k (k)}
+				<label class="segment">
+					<input
+						type="radio"
+						name="kategorie"
+						value={k}
+						bind:group={kategorie}
+						required
+					/>
+					<span>{KATEGORIE_LABEL[k]}</span>
+				</label>
+			{/each}
+		</div>
+	</fieldset>
 
 	<div class="form-row">
 		<div class="form-group">
@@ -281,6 +320,107 @@
 </form>
 
 <style>
+	.erfolg-link {
+		color: inherit;
+		font-weight: 600;
+		white-space: nowrap;
+		margin-left: var(--abstand-1);
+	}
+
+	@media (pointer: coarse) {
+		.erfolg-link {
+			display: inline-flex;
+			align-items: center;
+			min-height: 44px;
+		}
+	}
+
+	/* ── Kategorie: Segmented Control (Radio-Gruppe) ─────────────────────── */
+	.kategorie-auswahl {
+		border: none;
+		margin: 0;
+		padding: 0;
+		min-width: 0;
+	}
+
+	/* wie die globalen Formular-Labels */
+	.kategorie-legende {
+		padding: 0;
+		margin-bottom: var(--abstand-2);
+		font-size: var(--text-label);
+		font-weight: 600;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+		color: var(--farbe-text-3);
+	}
+
+	.segmente {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--abstand-1);
+		max-width: 360px;
+		padding: var(--abstand-1);
+		background: var(--farbe-flaeche);
+		border: 1.5px solid var(--farbe-rand-stark);
+		border-radius: var(--radius-m);
+	}
+
+	/* überschreibt den globalen Label-Stil (Versalien, klein) */
+	.segment {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		padding: 0 var(--abstand-4);
+		border-radius: var(--radius-s);
+		font-size: var(--text-ui);
+		font-weight: 500;
+		letter-spacing: normal;
+		text-transform: none;
+		color: var(--farbe-text-2);
+		cursor: pointer;
+		user-select: none;
+		transition:
+			background var(--dauer-schnell) var(--kurve),
+			color var(--dauer-schnell) var(--kurve);
+	}
+
+	/* Radio bleibt fokussierbar und per Pfeiltasten bedienbar, nur unsichtbar */
+	.segment input {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		opacity: 0;
+		cursor: pointer;
+	}
+
+	.segment:has(input:checked) {
+		background: var(--farbe-primaer);
+		color: var(--farbe-flaeche);
+	}
+
+	/* Fokus-Ring am sichtbaren Segment statt am unsichtbaren Radio */
+	.segment:has(input:focus-visible) {
+		outline: 2px solid var(--farbe-akzent);
+		outline-offset: 2px;
+	}
+
+	@media (hover: hover) {
+		.segment:hover:not(:has(input:checked)) {
+			background: var(--farbe-flaeche-2);
+			color: var(--farbe-primaer);
+		}
+	}
+
+	@media (max-width: 500px) {
+		.segmente {
+			max-width: none;
+		}
+	}
+
 	.datei-eingabe {
 		display: flex;
 		align-items: center;

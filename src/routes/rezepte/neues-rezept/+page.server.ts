@@ -1,10 +1,11 @@
 // src/routes/rezepte/neues-rezept/+page.server.ts
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { SqliteError } from 'better-sqlite3';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import db from '$lib/db';
+import { istKategorie, STANDARD_KATEGORIE } from '$lib/kategorien';
 
 const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -17,6 +18,12 @@ async function bildSpeichern(datei: File): Promise<string> {
 	return `/uploads/${name}`;
 }
 
+// Vorauswahl über ?kategorie=nachtisch (z. B. aus der Nachtisch-Liste)
+export const load: PageServerLoad = ({ url }) => {
+	const wunsch = url.searchParams.get('kategorie');
+	return { kategorie: istKategorie(wunsch) ? wunsch : STANDARD_KATEGORIE };
+};
+
 export const actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
@@ -25,10 +32,21 @@ export const actions = {
 		const portionen = Number(formData.get('portionen'));
 		const zubereitungszeit = Number(formData.get('zubereitungszeit'));
 		const anleitung = formData.get('anleitung')?.toString().trim();
+		const kategorieRoh = formData.get('kategorie')?.toString();
 
 		const zutatNamen = formData.getAll('zutat_name').map(String);
 		const zutatMengen = formData.getAll('zutat_menge').map(Number);
 		const zutatEinheiten = formData.getAll('zutat_einheit').map(String);
+
+		// Validierung: Kategorie (Pflichtauswahl, nur die zwei erlaubten Werte)
+		if (!istKategorie(kategorieRoh)) {
+			return {
+				erfolg: false,
+				message: 'Bitte wähle aus, ob das Rezept zu Mittagessen oder Nachtisch gehört.',
+				werte: { titel, portionen, zubereitungszeit, anleitung }
+			};
+		}
+		const kategorie = kategorieRoh;
 
 		// Validierung: Rezept
 		if (
@@ -42,16 +60,24 @@ export const actions = {
 			return {
 				erfolg: false,
 				message: 'Füll die Felder korrekt aus (nur ganze Zahlen > 0).',
-				werte: { titel, portionen, zubereitungszeit, anleitung }
+				werte: { titel, portionen, zubereitungszeit, anleitung, kategorie }
 			};
 		}
 
 		// Validierung: Zutaten
 		if (zutatNamen.length === 0 || zutatNamen.some((n) => !n.trim())) {
-			return { erfolg: false, message: 'Bitte mindestens eine Zutat angeben.' };
+			return {
+				erfolg: false,
+				message: 'Bitte mindestens eine Zutat angeben.',
+				werte: { kategorie }
+			};
 		}
 		if (zutatMengen.some((m) => !(m > 0) || !Number.isInteger(m))) {
-			return { erfolg: false, message: 'Mengen müssen ganze Zahlen > 0 sein.' };
+			return {
+				erfolg: false,
+				message: 'Mengen müssen ganze Zahlen > 0 sein.',
+				werte: { kategorie }
+			};
 		}
 
 		// Bild verarbeiten (optional)
@@ -59,13 +85,25 @@ export const actions = {
 		const bildDatei = formData.get('bild');
 		if (bildDatei instanceof File && bildDatei.size > 0) {
 			if (!ERLAUBTE_TYPEN.includes(bildDatei.type))
-				return { erfolg: false, message: 'Nur JPEG, PNG, WebP und GIF sind erlaubt.' };
+				return {
+					erfolg: false,
+					message: 'Nur JPEG, PNG, WebP und GIF sind erlaubt.',
+					werte: { kategorie }
+				};
 			if (bildDatei.size > MAX_BYTES)
-				return { erfolg: false, message: 'Das Bild darf maximal 5 MB groß sein.' };
+				return {
+					erfolg: false,
+					message: 'Das Bild darf maximal 5 MB groß sein.',
+					werte: { kategorie }
+				};
 			try {
 				bildPfad = await bildSpeichern(bildDatei);
 			} catch {
-				return { erfolg: false, message: 'Fehler beim Speichern des Bildes.' };
+				return {
+					erfolg: false,
+					message: 'Fehler beim Speichern des Bildes.',
+					werte: { kategorie }
+				};
 			}
 		} else {
 			// Use pre-downloaded image from scraper if no manual upload
@@ -76,8 +114,8 @@ export const actions = {
 		}
 
 		const rezeptEinfuegen = db.prepare(`
-			INSERT INTO rezepte (titel, portionen, zubereitungszeit, anleitung, bild)
-			VALUES (?, ?, ?, ?, ?)
+			INSERT INTO rezepte (titel, portionen, zubereitungszeit, anleitung, bild, kategorie)
+			VALUES (?, ?, ?, ?, ?, ?)
 		`);
 		const zutatEinfuegen = db.prepare(`
 			INSERT OR IGNORE INTO zutaten (zutat) VALUES (?)
@@ -97,7 +135,8 @@ export const actions = {
 					portionen,
 					zubereitungszeit,
 					anleitung,
-					bildPfad
+					bildPfad,
+					kategorie
 				);
 
 				for (let i = 0; i < zutatNamen.length; i++) {
@@ -108,13 +147,21 @@ export const actions = {
 				}
 			})();
 
-			return { erfolg: true };
+			return { erfolg: true, werte: { kategorie } };
 		} catch (error: unknown) {
 			if (error instanceof SqliteError && error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-				return { erfolg: false, message: 'Ein Rezept mit diesem Titel existiert bereits.' };
+				return {
+					erfolg: false,
+					message: 'Ein Rezept mit diesem Titel existiert bereits.',
+					werte: { kategorie }
+				};
 			}
 			console.error('Systemerror:', error);
-			return { erfolg: false, message: 'Ein unerwarteter Fehler ist aufgetreten.' };
+			return {
+				erfolg: false,
+				message: 'Ein unerwarteter Fehler ist aufgetreten.',
+				werte: { kategorie }
+			};
 		}
 	}
 } satisfies Actions;

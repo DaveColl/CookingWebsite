@@ -18,9 +18,17 @@
 			href={resolve('/rezepte')}
 			class="hub-karte"
 		>
-			<span class="hub-icon">📖</span>
-			<span class="hub-label">Rezepte</span>
-			<span class="hub-beschr">Alle Rezepte ansehen, hinzufügen und bearbeiten</span>
+			<span class="hub-icon">🍲</span>
+			<span class="hub-label">Mittagessen</span>
+			<span class="hub-beschr">Hauptgerichte ansehen, hinzufügen und bearbeiten</span>
+		</a>
+		<a
+			href={resolve('/nachtisch')}
+			class="hub-karte"
+		>
+			<span class="hub-icon">🍰</span>
+			<span class="hub-label">Nachtisch</span>
+			<span class="hub-beschr">Süßes und Desserts ansehen, hinzufügen und bearbeiten</span>
 		</a>
 		<a
 			href={resolve('/einkauf')}
@@ -72,12 +80,12 @@
 		font-weight: 300;
 	}
 
+	/* Vier Kacheln: 2×2 auf Tablet/Desktop, einspaltig ab 600px */
 	.hub-karten {
-		display: flex;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--abstand-5);
-		flex-wrap: wrap;
-		justify-content: center;
-		max-width: 900px;
+		max-width: 620px;
 		width: 100%;
 	}
 
@@ -92,9 +100,7 @@
 		padding: var(--abstand-6);
 		text-decoration: none;
 		color: inherit;
-		flex: 1;
-		min-width: 200px;
-		max-width: 270px;
+		min-width: 0;
 		text-align: center;
 		transition:
 			box-shadow var(--dauer-schnell) var(--kurve),
@@ -132,11 +138,7 @@
 
 	@media (max-width: 600px) {
 		.hub-karten {
-			flex-direction: column;
-			align-items: stretch;
-		}
-		.hub-karte {
-			max-width: 100%;
+			grid-template-columns: 1fr;
 		}
 		.hub {
 			padding: var(--abstand-6) var(--abstand-4);

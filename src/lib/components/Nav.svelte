@@ -4,6 +4,27 @@
 	import { resolve } from '$app/paths';
 
 	let menuOffen = $state(false);
+
+	// Detailseiten /rezepte/[id] gehören je nach Kategorie zu Mittagessen oder Nachtisch
+	const pfad = $derived($page.url.pathname);
+	const rezeptKategorie = $derived(
+		($page.data as { rezept?: { kategorie?: string } }).rezept?.kategorie
+	);
+	const istNeuesRezept = $derived(pfad === '/rezepte/neues-rezept');
+	const nachtischAktiv = $derived(
+		pfad.startsWith('/nachtisch') ||
+			(pfad.startsWith('/rezepte/') && !istNeuesRezept && rezeptKategorie === 'nachtisch')
+	);
+	const mittagessenAktiv = $derived(
+		pfad === '/rezepte' ||
+			(pfad.startsWith('/rezepte/') && !istNeuesRezept && rezeptKategorie !== 'nachtisch')
+	);
+	// Aus dem Nachtisch-Bereich heraus Nachtisch im Formular vorauswählen
+	const neuesRezeptHref = $derived(
+		nachtischAktiv
+			? resolve('/rezepte/neues-rezept?kategorie=nachtisch')
+			: resolve('/rezepte/neues-rezept')
+	);
 	let hamburgerKnopf: HTMLButtonElement | undefined = $state();
 	let schublade: HTMLDivElement | undefined = $state();
 
@@ -45,15 +66,21 @@
 		<li>
 			<a
 				href={resolve('/rezepte')}
-				class:aktiv={$page.url.pathname.startsWith('/rezepte') &&
-					$page.url.pathname !== '/rezepte/neues-rezept'}
-				onclick={() => (menuOffen = false)}>Alle Rezepte</a
+				class:aktiv={mittagessenAktiv}
+				onclick={() => (menuOffen = false)}>Mittagessen</a
 			>
 		</li>
 		<li>
 			<a
-				href={resolve('/rezepte/neues-rezept')}
-				class:aktiv={$page.url.pathname === '/rezepte/neues-rezept'}
+				href={resolve('/nachtisch')}
+				class:aktiv={nachtischAktiv}
+				onclick={() => (menuOffen = false)}>Nachtisch</a
+			>
+		</li>
+		<li>
+			<a
+				href={neuesRezeptHref}
+				class:aktiv={istNeuesRezept}
 				onclick={() => (menuOffen = false)}>+ Neues Rezept</a
 			>
 		</li>
@@ -94,15 +121,21 @@
 		<li>
 			<a
 				href={resolve('/rezepte')}
-				class:aktiv={$page.url.pathname.startsWith('/rezepte') &&
-					$page.url.pathname !== '/rezepte/neues-rezept'}
-				onclick={() => (menuOffen = false)}>Alle Rezepte</a
+				class:aktiv={mittagessenAktiv}
+				onclick={() => (menuOffen = false)}>Mittagessen</a
 			>
 		</li>
 		<li>
 			<a
-				href={resolve('/rezepte/neues-rezept')}
-				class:aktiv={$page.url.pathname === '/rezepte/neues-rezept'}
+				href={resolve('/nachtisch')}
+				class:aktiv={nachtischAktiv}
+				onclick={() => (menuOffen = false)}>Nachtisch</a
+			>
+		</li>
+		<li>
+			<a
+				href={neuesRezeptHref}
+				class:aktiv={istNeuesRezept}
 				onclick={() => (menuOffen = false)}>+ Neues Rezept</a
 			>
 		</li>
@@ -193,6 +226,7 @@
 		color: var(--farbe-text-2);
 		text-decoration: none;
 		padding: var(--abstand-2) var(--abstand-4);
+		white-space: nowrap;
 		border-radius: var(--radius-m);
 		transition:
 			background var(--dauer-schnell) var(--kurve),
@@ -225,7 +259,10 @@
 		display: none;
 	}
 
-	@media (max-width: 600px) {
+	/* Nav-eigener Umbruch auf Hamburger + Schublade: Die sechs Desktop-Links brauchen
+	   samt Logo und Rändern rund 840px. Darunter liefen sie über bzw. brachen um. Das
+	   übrige Layout (Paddings, Startseite) bricht weiterhin bei 600px um. */
+	@media (max-width: 880px) {
 		/* Tap-Fläche 44×44, Striche bleiben 22px breit und zentriert.
 		   Negativer Rand hält die Striche optisch an der alten Position. */
 		.hamburger {
@@ -241,10 +278,6 @@
 		/* Hide the desktop ul inside <nav> */
 		nav ul {
 			display: none;
-		}
-
-		nav {
-			padding: 0 var(--abstand-4);
 		}
 
 		/* Animated drawer */
@@ -298,6 +331,12 @@
 		.menu-liste a.aktiv {
 			background: var(--farbe-primaer);
 			color: var(--farbe-flaeche);
+		}
+	}
+
+	@media (max-width: 600px) {
+		nav {
+			padding: 0 var(--abstand-4);
 		}
 	}
 </style>

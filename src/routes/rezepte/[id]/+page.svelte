@@ -1,7 +1,9 @@
 <!-- src/routes/rezepte/[id]/+page.svelte -->
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import { resolve } from '$app/paths';
 	import RezeptFormular from '$lib/components/RezeptFormular.svelte';
+	import { KATEGORIE_LABEL, KATEGORIE_PFAD } from '$lib/kategorien';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let bearbeiten = $state(false);
@@ -147,6 +149,7 @@
 		form={form?.erfolg ? null : form}
 		buttonText="Änderungen speichern"
 		currentBild={data.rezept.bild}
+		kategorie={data.rezept.kategorie}
 		startWerte={{
 			titel: data.rezept.titel,
 			portionen: data.rezept.portionen,
@@ -156,6 +159,12 @@
 		}}
 	/>
 {:else}
+	<a
+		class="zurueck-link"
+		href={resolve(KATEGORIE_PFAD[data.rezept.kategorie])}
+		>← {KATEGORIE_LABEL[data.rezept.kategorie]}</a
+	>
+
 	{#if form?.erfolg}
 		<p class="meldung-erfolg aktualisiert-meldung">Rezept wurde aktualisiert!</p>
 	{/if}
@@ -352,6 +361,33 @@
 	}
 
 	/* ── Detail view ────────────────────────────────────────────────────────── */
+	.zurueck-link {
+		display: inline-flex;
+		align-items: center;
+		margin-bottom: var(--abstand-4);
+		font-size: var(--text-klein);
+		font-weight: 500;
+		color: var(--farbe-text-2);
+		text-decoration: none;
+		border-radius: var(--radius-s);
+		transition: color var(--dauer-schnell) var(--kurve);
+	}
+
+	@media (hover: hover) {
+		.zurueck-link:hover {
+			color: var(--farbe-primaer);
+			text-decoration: underline;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.zurueck-link {
+			min-height: 44px;
+			margin-top: calc(-1 * var(--abstand-3));
+			margin-bottom: var(--abstand-2);
+		}
+	}
+
 	.aktualisiert-meldung {
 		margin-bottom: 1.5rem;
 	}
