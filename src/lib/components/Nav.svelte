@@ -4,7 +4,19 @@
 	import { resolve } from '$app/paths';
 
 	let menuOffen = $state(false);
+	let hamburgerKnopf: HTMLButtonElement | undefined = $state();
+	let schublade: HTMLDivElement | undefined = $state();
+
+	function beiTaste(e: KeyboardEvent) {
+		if (e.key !== 'Escape' || !menuOffen) return;
+		const fokusInSchublade = schublade?.contains(document.activeElement) ?? false;
+		menuOffen = false;
+		// Fokus nicht im nun inerten Menü verlieren lassen
+		if (fokusInSchublade) hamburgerKnopf?.focus();
+	}
 </script>
+
+<svelte:window onkeydown={beiTaste} />
 
 <nav>
 	<a
@@ -14,9 +26,11 @@
 	<button
 		class="hamburger"
 		class:aktiv={menuOffen}
+		bind:this={hamburgerKnopf}
 		onclick={() => (menuOffen = !menuOffen)}
-		aria-label="Menü öffnen"
+		aria-label={menuOffen ? 'Menü schließen' : 'Menü öffnen'}
 		aria-expanded={menuOffen}
+		aria-controls="menu-schublade"
 	>
 		<span></span><span></span><span></span>
 	</button>
@@ -61,10 +75,13 @@
 </nav>
 
 <!-- Separate wrapper handles the slide animation so overflow:hidden never clips ul children -->
+<!-- inert solange geschlossen: Links weder fokussierbar noch klickbar -->
 <div
+	id="menu-schublade"
 	class="menu-schublade"
 	class:offen={menuOffen}
-	aria-hidden={!menuOffen}
+	bind:this={schublade}
+	inert={!menuOffen}
 >
 	<ul class="menu-liste">
 		<li>
@@ -196,8 +213,17 @@
 	}
 
 	@media (max-width: 600px) {
+		/* Tap-Fläche 44×44, Striche bleiben 22px breit und zentriert.
+		   Negativer Rand hält die Striche optisch an der alten Position. */
 		.hamburger {
 			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 44px;
+			height: 44px;
+			padding: 0;
+			margin-right: -0.3rem;
+			flex-shrink: 0;
 		}
 
 		/* Hide the desktop ul inside <nav> */
