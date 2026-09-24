@@ -128,20 +128,20 @@
 		position: sticky;
 		top: 0;
 		z-index: 50;
-		background: #fdfaf4;
-		border-bottom: 1px solid #e5ddd0;
+		background: var(--farbe-flaeche);
+		border-bottom: 1px solid var(--farbe-rand);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 2.5rem;
-		height: 62px;
+		padding: 0 var(--abstand-6);
+		height: var(--nav-hoehe);
 	}
 
 	.logo {
-		font-family: 'Lora', serif;
-		font-size: 1.35rem;
+		font-family: var(--schrift-titel);
+		font-size: var(--text-abschnitt);
 		font-weight: 700;
-		color: #2c4a1e;
+		color: var(--farbe-primaer);
 		text-decoration: none;
 	}
 
@@ -151,19 +151,21 @@
 		gap: 5px;
 		background: none;
 		border: none;
+		border-radius: var(--radius-m);
 		cursor: pointer;
-		padding: 0.4rem;
+		padding: 0;
 	}
 
+	/* Strich-Geometrie (22×2px, 5px Abstand) ist Icon-Maß, keine Token-Stufe */
 	.hamburger span {
 		display: block;
 		width: 22px;
 		height: 2px;
-		background: #2c4a1e;
-		border-radius: 2px;
+		background: var(--farbe-primaer);
+		border-radius: var(--radius-rund);
 		transition:
-			transform 0.3s ease,
-			opacity 0.3s ease;
+			transform var(--dauer-mittel) var(--kurve),
+			opacity var(--dauer-mittel) var(--kurve);
 		transform-origin: center;
 	}
 
@@ -182,29 +184,40 @@
 	ul {
 		list-style: none;
 		display: flex;
-		gap: 0.25rem;
+		gap: var(--abstand-1);
 	}
 
 	ul a {
-		font-size: 0.875rem;
+		font-size: var(--text-klein);
 		font-weight: 500;
-		color: #6b6255;
+		color: var(--farbe-text-2);
 		text-decoration: none;
-		padding: 0.4rem 0.9rem;
-		border-radius: 8px;
+		padding: var(--abstand-2) var(--abstand-4);
+		border-radius: var(--radius-m);
 		transition:
-			background 0.15s,
-			color 0.15s;
+			background var(--dauer-schnell) var(--kurve),
+			color var(--dauer-schnell) var(--kurve);
 	}
 
-	ul a:hover {
-		background: #ede7dc;
-		color: #2c4a1e;
+	@media (hover: hover) {
+		ul a:hover {
+			background: var(--farbe-flaeche-2);
+			color: var(--farbe-primaer);
+		}
 	}
 
 	ul a.aktiv {
-		background: #2c4a1e;
-		color: #fdfaf4;
+		background: var(--farbe-primaer);
+		color: var(--farbe-flaeche);
+	}
+
+	/* Touch-Geräte (z. B. Tablet 768px): Nav-Links mindestens 44px hoch */
+	@media (pointer: coarse) {
+		nav ul a {
+			display: inline-flex;
+			align-items: center;
+			min-height: 44px;
+		}
 	}
 
 	/* Mobile drawer — hidden on desktop */
@@ -221,8 +234,7 @@
 			align-items: center;
 			width: 44px;
 			height: 44px;
-			padding: 0;
-			margin-right: -0.3rem;
+			margin-right: calc(-1 * var(--abstand-1));
 			flex-shrink: 0;
 		}
 
@@ -232,21 +244,21 @@
 		}
 
 		nav {
-			padding: 0 1.25rem;
+			padding: 0 var(--abstand-4);
 		}
 
 		/* Animated drawer */
 		.menu-schublade {
 			display: block;
 			position: sticky;
-			top: 62px;
+			top: var(--nav-hoehe);
 			z-index: 49;
-			background: #fdfaf4;
-			border-bottom: 1px solid #e5ddd0;
+			background: var(--farbe-flaeche);
+			border-bottom: 1px solid var(--farbe-rand);
 			/* Animation via max-height on the outer wrapper */
 			max-height: 0;
 			overflow: hidden;
-			transition: max-height 0.3s ease;
+			transition: max-height var(--dauer-mittel) var(--kurve);
 		}
 
 		.menu-schublade.offen {
@@ -259,41 +271,33 @@
 			list-style: none;
 			display: flex;
 			flex-direction: column;
-			gap: 0.25rem;
-			padding: 0.75rem 1.25rem;
+			gap: var(--abstand-1);
+			padding: var(--abstand-3) var(--abstand-4);
 		}
 
 		.menu-liste a {
 			display: block;
-			font-size: 1rem;
+			font-size: var(--text-basis);
 			font-weight: 500;
-			color: #6b6255;
+			color: var(--farbe-text-2);
 			text-decoration: none;
-			padding: 0.65rem 0.9rem;
-			border-radius: 8px;
+			padding: var(--abstand-3) var(--abstand-4);
+			border-radius: var(--radius-m);
 			transition:
-				background 0.15s,
-				color 0.15s;
+				background var(--dauer-schnell) var(--kurve),
+				color var(--dauer-schnell) var(--kurve);
 		}
 
-		.menu-liste a:hover {
-			background: #ede7dc;
-			color: #2c4a1e;
+		@media (hover: hover) {
+			.menu-liste a:hover {
+				background: var(--farbe-flaeche-2);
+				color: var(--farbe-primaer);
+			}
 		}
 
 		.menu-liste a.aktiv {
-			background: #2c4a1e;
-			color: #fdfaf4;
-		}
-	}
-
-	@media (max-width: 375px) {
-		nav {
-			padding: 0 1rem;
-		}
-
-		.menu-liste {
-			padding: 0.75rem 1rem;
+			background: var(--farbe-primaer);
+			color: var(--farbe-flaeche);
 		}
 	}
 </style>

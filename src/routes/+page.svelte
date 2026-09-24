@@ -42,28 +42,14 @@
 </div>
 
 <style>
-	:global(*, *::before, *::after) {
-		box-sizing: border-box;
-		margin: 0;
-		padding: 0;
-	}
-
-	:global(body) {
-		font-family: 'Outfit', sans-serif;
-		background: #f4f1eb;
-		color: #1a1a18;
-		line-height: 1.65;
-		min-height: 100vh;
-	}
-
 	.hub {
-		min-height: calc(100vh - 62px);
+		min-height: calc(100vh - var(--nav-hoehe));
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 3rem 2rem;
-		gap: 3rem;
+		padding: var(--abstand-7) var(--abstand-6);
+		gap: var(--abstand-7);
 	}
 
 	.hub-header {
@@ -71,24 +57,24 @@
 	}
 
 	.hub-titel {
-		font-family: 'Lora', serif;
-		font-size: clamp(2.2rem, 6vw, 3.5rem);
+		font-family: var(--schrift-titel);
+		font-size: var(--text-seite);
 		font-weight: 700;
-		color: #2c4a1e;
-		letter-spacing: -0.03em;
-		line-height: 1.1;
-		margin-bottom: 0.5rem;
+		color: var(--farbe-primaer);
+		letter-spacing: -0.025em;
+		line-height: 1.15;
+		margin-bottom: var(--abstand-2);
 	}
 
 	.hub-unter {
-		font-size: 1rem;
-		color: #8a7d6e;
+		font-size: var(--text-basis);
+		color: var(--farbe-text-3);
 		font-weight: 300;
 	}
 
 	.hub-karten {
 		display: flex;
-		gap: 1.5rem;
+		gap: var(--abstand-5);
 		flex-wrap: wrap;
 		justify-content: center;
 		max-width: 900px;
@@ -99,11 +85,11 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.6rem;
-		background: #fdfaf4;
-		border: 1.5px solid #e5ddd0;
-		border-radius: 20px;
-		padding: 2.5rem 2rem;
+		gap: var(--abstand-2);
+		background: var(--farbe-flaeche);
+		border: 1.5px solid var(--farbe-rand);
+		border-radius: var(--radius-l);
+		padding: var(--abstand-6);
 		text-decoration: none;
 		color: inherit;
 		flex: 1;
@@ -111,32 +97,35 @@
 		max-width: 270px;
 		text-align: center;
 		transition:
-			box-shadow 0.2s,
-			transform 0.2s,
-			border-color 0.2s;
+			box-shadow var(--dauer-schnell) var(--kurve),
+			transform var(--dauer-schnell) var(--kurve),
+			border-color var(--dauer-schnell) var(--kurve);
 	}
 
-	.hub-karte:hover {
-		box-shadow: 0 12px 36px rgba(44, 74, 30, 0.12);
-		transform: translateY(-3px);
-		border-color: #9dc495;
+	@media (hover: hover) {
+		.hub-karte:hover {
+			box-shadow: var(--schatten-m);
+			transform: translateY(-2px);
+			border-color: var(--farbe-akzent-hell);
+		}
 	}
 
+	/* Emoji-Icon: Bildgröße, keine Schriftstufe */
 	.hub-icon {
 		font-size: 2.5rem;
 		line-height: 1;
 	}
 
 	.hub-label {
-		font-family: 'Lora', serif;
-		font-size: 1.3rem;
+		font-family: var(--schrift-titel);
+		font-size: var(--text-abschnitt);
 		font-weight: 700;
-		color: #2c4a1e;
+		color: var(--farbe-primaer);
 	}
 
 	.hub-beschr {
-		font-size: 0.85rem;
-		color: #8a7d6e;
+		font-size: var(--text-klein);
+		color: var(--farbe-text-3);
 		font-weight: 300;
 		line-height: 1.5;
 	}
@@ -150,8 +139,8 @@
 			max-width: 100%;
 		}
 		.hub {
-			padding: 2rem 1.25rem;
-			gap: 2rem;
+			padding: var(--abstand-6) var(--abstand-4);
+			gap: var(--abstand-6);
 		}
 	}
 </style>

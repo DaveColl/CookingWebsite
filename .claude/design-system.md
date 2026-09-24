@@ -5,8 +5,17 @@ Gepflegt vom `designer`-Agent. implementer und reviewer halten sich daran.
 
 ## Tokens
 
-Die Tokens werden als CSS Custom Properties in `src/routes/+layout.svelte` (`:global(:root)`) definiert. Neue Styles verwenden **nur** Tokens, keine neuen Hex-Werte.
-Solange ein Token noch nicht im Code existiert, gilt der Wert aus dieser Tabelle, und der designer führt ihn beim nächsten Design-Auftrag ein.
+Alle Tokens dieser Datei sind als CSS Custom Properties in `src/routes/+layout.svelte` (`:global(:root)`) definiert (seit 2026-09-24). Neue Styles verwenden **nur** `var(--…)`, keine neuen Hex-Werte oder Zwischengrößen.
+
+### Stand der Umstellung
+
+| Bereich                                                                       | Status                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------- |
+| Tokens, `body`, `:focus-visible`, reduced-motion                              | umgestellt (`+layout.svelte`)                     |
+| Nav inkl. Hamburger-Schublade (`lib/components/Nav.svelte`)                   | umgestellt                                        |
+| Startseite (`routes/+page.svelte`)                                            | umgestellt                                        |
+| Gemeinsame Klassen in `+layout.svelte` (Formular, Buttons, Meldungen, Karten) | offen, noch Hex-Werte; betreffen alle Unterseiten |
+| Rezepte, Einkauf, Aufgaben, `RezeptFormular.svelte`                           | offen                                             |
 
 ### Farben
 
@@ -35,22 +44,36 @@ Weitere Farbtöne im Bestand (z. B. `#e8e0d6`, `#d4edda`, `#5a4a3a`) werden schr
 
 ### Form, Tiefe, Abstände
 
-| Token           | Wert                                     | Verwendung                              |
-| --------------- | ---------------------------------------- | --------------------------------------- |
-| `--radius-s`    | `6px`                                    | Chips, kleine Buttons, Checkboxen       |
-| `--radius-m`    | `10px`                                   | Buttons, Eingabefelder, Meldungen       |
-| `--radius-l`    | `14px`                                   | Karten, Blöcke, Dialoge                 |
-| `--radius-rund` | `999px`                                  | Pills, runde Icon-Buttons               |
-| `--schatten-s`  | `0 2px 8px rgba(44, 74, 30, 0.08)`       | leichte Anhebung                        |
-| `--schatten-m`  | `0 8px 28px rgba(44, 74, 30, 0.1)`       | Karten-Hover                            |
-| `--schatten-l`  | `0 24px 64px rgba(0, 0, 0, 0.22)`        | Modale Dialoge                          |
-| `--fokus-ring`  | `0 0 0 3px rgba(74, 124, 63, 0.13)`      | Fokus auf Eingaben/Buttons              |
-| Abstände        | `0.25 / 0.5 / 0.75 / 1 / 1.5 / 2 / 3rem` | nur diese Stufen für padding/gap/margin |
+| Token                         | Wert                                     | Verwendung                                                         |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| `--radius-s`                  | `6px`                                    | Chips, kleine Buttons, Checkboxen                                  |
+| `--radius-m`                  | `10px`                                   | Buttons, Eingabefelder, Meldungen                                  |
+| `--radius-l`                  | `14px`                                   | Karten, Blöcke, Dialoge                                            |
+| `--radius-rund`               | `999px`                                  | Pills, runde Icon-Buttons                                          |
+| `--schatten-s`                | `0 2px 8px rgba(44, 74, 30, 0.08)`       | leichte Anhebung                                                   |
+| `--schatten-m`                | `0 8px 28px rgba(44, 74, 30, 0.1)`       | Karten-Hover                                                       |
+| `--schatten-l`                | `0 24px 64px rgba(0, 0, 0, 0.22)`        | Modale Dialoge                                                     |
+| `--fokus-ring`                | `0 0 0 3px rgba(74, 124, 63, 0.13)`      | Fokus auf Eingaben/Buttons                                         |
+| `--abstand-1` … `--abstand-7` | `0.25 / 0.5 / 0.75 / 1 / 1.5 / 2 / 3rem` | nur diese Stufen für padding/gap/margin                            |
+| `--nav-hoehe`                 | `62px`                                   | Höhe der Nav; Sticky-Offset der Schublade, `min-height`-Rechnungen |
+
+Ausnahmen, die kein Token brauchen: Rahmenstärken (1px, 1.5px, 4px-Streifen), Icon-Geometrie (Hamburger-Striche 22×2px), Emoji-Icons (Startseite 2.5rem), Mindestmaße für Touch (44px) und Layout-Breiten (`max-width`, `minmax`).
 
 ### Typografie
 
-- Überschriften und Kartentitel: **Lora**, 700. Fließtext und UI: **Outfit**, 300–600.
-- Größenstufen (rem): `0.72` (Label, Versalien, `letter-spacing: 0.09em`), `0.85` (klein/Meta), `0.95` (UI-Text), `1` (Fließtext, Eingaben, mind. 1rem wegen iOS-Zoom), `1.15` (Kartentitel), `1.4` (Abschnittstitel), `clamp(1.9rem, 4vw, 2.8rem)` (Seitentitel).
+- Überschriften und Kartentitel: **Lora**, 700 (`--schrift-titel`). Fließtext und UI: **Outfit**, 300–600 (`--schrift-text`).
+- Größenstufen:
+
+| Token              | Wert                         | Verwendung                                      |
+| ------------------ | ---------------------------- | ----------------------------------------------- |
+| `--text-label`     | `0.72rem`                    | Label, Versalien, `letter-spacing: 0.09em`      |
+| `--text-klein`     | `0.85rem`                    | klein/Meta, Desktop-Nav-Links                   |
+| `--text-ui`        | `0.95rem`                    | UI-Text                                         |
+| `--text-basis`     | `1rem`                       | Fließtext, Eingaben (mind. 1rem wegen iOS-Zoom) |
+| `--text-karte`     | `1.15rem`                    | Kartentitel                                     |
+| `--text-abschnitt` | `1.4rem`                     | Abschnittstitel, Logo, Startseiten-Kachel       |
+| `--text-seite`     | `clamp(1.9rem, 4vw, 2.8rem)` | Seitentitel (auch Startseiten-Titel)            |
+
 - Keine neuen Zwischengrößen (0.82, 0.88, 0.78 …). Beim Anfassen auf die nächste Stufe runden.
 
 ## Bewegung: flüssig, aber zurückhaltend
@@ -68,8 +91,10 @@ Regeln:
 3. Hover-Anhebung höchstens `translateY(-2px)` plus `--schatten-m`. `:active` höchstens `translateY(1px)`.
 4. Hover-Effekte nur hinter `@media (hover: hover)`, damit auf Touch nichts „kleben“ bleibt.
 5. Neue oder entfernte Listeneinträge dürfen mit Svelte `fade`/`slide` (Dauer 150–250ms) erscheinen, aber nicht bei jedem SSE-Update neu animiert werden.
-6. Global gilt `@media (prefers-reduced-motion: reduce)`: Übergänge und Animationen auf ≈0 setzen.
-7. Einheitlicher Fokus: `:focus-visible` zeigt einen `--fokus-ring` bzw. `outline: 2px solid var(--farbe-akzent); outline-offset: 2px`. Nie `outline: none` ohne Ersatz.
+6. Global gilt `@media (prefers-reduced-motion: reduce)` (in `+layout.svelte`): `--dauer-schnell`/`--dauer-mittel` werden `0ms`, alle CSS-Übergänge und -Animationen laufen mit `0.01ms`, `scroll-behavior: auto`. Svelte-JS-Transitions (`fade`/`slide`) sind davon nicht erfasst; wer sie nutzt, setzt die Dauer bei reduced-motion selbst auf 0.
+7. Einheitlicher Fokus: global `:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 2px }`. Text-Eingaben, `textarea` und `select` zeigen Fokus stattdessen über Rand `--farbe-akzent` + `--fokus-ring` (ohne zusätzliche Outline). Nie `outline: none` ohne Ersatz.
+8. Übergänge immer als `<eigenschaft> var(--dauer-…) var(--kurve)` schreiben, keine festen Sekunden-Werte und kein `ease`.
+9. Touch-Geräte: interaktive Elemente unter `@media (pointer: coarse)` mindestens 44px hoch (z. B. Nav-Links auf Tablets).
 
 ## Komponenten-Muster
 

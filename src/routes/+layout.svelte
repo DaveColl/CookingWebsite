@@ -29,6 +29,67 @@
 {@render children()}
 
 <style>
+	/* Design-Tokens: Quelle der Wahrheit ist .claude/design-system.md */
+	:global(:root) {
+		/* Farben */
+		--farbe-primaer: #2c4a1e;
+		--farbe-primaer-hover: #3d6528;
+		--farbe-akzent: #4a7c3f;
+		--farbe-akzent-hell: #9dc495;
+		--farbe-akzent-flaeche: rgba(74, 124, 63, 0.07);
+		--farbe-hintergrund: #f4f1eb;
+		--farbe-flaeche: #fdfaf4;
+		--farbe-flaeche-2: #ede7dc;
+		--farbe-rand: #e5ddd0;
+		--farbe-rand-stark: #ddd5c5;
+		--farbe-text: #1a1a18;
+		--farbe-text-2: #6b6255;
+		--farbe-text-3: #8a7d6e;
+		--farbe-text-leise: #c4bab0;
+		--farbe-fehler: #c0392b;
+		--farbe-fehler-flaeche: #fdf2f0;
+		--farbe-erfolg-flaeche: #f3f8f1;
+		--farbe-hinweis: #f9c846;
+
+		/* Form und Tiefe */
+		--radius-s: 6px;
+		--radius-m: 10px;
+		--radius-l: 14px;
+		--radius-rund: 999px;
+		--schatten-s: 0 2px 8px rgba(44, 74, 30, 0.08);
+		--schatten-m: 0 8px 28px rgba(44, 74, 30, 0.1);
+		--schatten-l: 0 24px 64px rgba(0, 0, 0, 0.22);
+		--fokus-ring: 0 0 0 3px rgba(74, 124, 63, 0.13);
+
+		/* Abstände */
+		--abstand-1: 0.25rem;
+		--abstand-2: 0.5rem;
+		--abstand-3: 0.75rem;
+		--abstand-4: 1rem;
+		--abstand-5: 1.5rem;
+		--abstand-6: 2rem;
+		--abstand-7: 3rem;
+
+		/* Typografie */
+		--schrift-titel: 'Lora', serif;
+		--schrift-text: 'Outfit', sans-serif;
+		--text-label: 0.72rem;
+		--text-klein: 0.85rem;
+		--text-ui: 0.95rem;
+		--text-basis: 1rem;
+		--text-karte: 1.15rem;
+		--text-abschnitt: 1.4rem;
+		--text-seite: clamp(1.9rem, 4vw, 2.8rem);
+
+		/* Bewegung */
+		--dauer-schnell: 150ms;
+		--dauer-mittel: 250ms;
+		--kurve: cubic-bezier(0.2, 0, 0, 1);
+
+		/* Layout */
+		--nav-hoehe: 62px;
+	}
+
 	:global(*, *::before, *::after) {
 		box-sizing: border-box;
 		margin: 0;
@@ -36,11 +97,34 @@
 	}
 
 	:global(body) {
-		font-family: 'Outfit', sans-serif;
-		background: #f4f1eb;
-		color: #1a1a18;
+		font-family: var(--schrift-text);
+		background: var(--farbe-hintergrund);
+		color: var(--farbe-text);
 		line-height: 1.65;
 		min-height: 100vh;
+	}
+
+	/* Einheitlicher Fokus für Tastaturbedienung. Eingabefelder behalten
+	   zusätzlich Rand + --fokus-ring aus ihrer eigenen :focus-Regel. */
+	:global(:focus-visible) {
+		outline: 2px solid var(--farbe-akzent);
+		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global(:root) {
+			--dauer-schnell: 0ms;
+			--dauer-mittel: 0ms;
+		}
+		:global(html) {
+			scroll-behavior: auto;
+		}
+		:global(*, *::before, *::after) {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
 	}
 
 	:global(.seite-kopf) {
@@ -122,6 +206,11 @@
 	:global(select:focus) {
 		border-color: #4a7c3f;
 		box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.13);
+	}
+	/* Textfelder zeigen Fokus über Rand + Ring (s. o.), nicht zusätzlich per Outline */
+	:global(textarea:focus-visible),
+	:global(select:focus-visible) {
+		outline: none;
 	}
 	:global(input::placeholder),
 	:global(textarea::placeholder) {
