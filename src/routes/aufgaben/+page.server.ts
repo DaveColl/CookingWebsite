@@ -10,13 +10,14 @@ interface RawAufgabe {
 	geplant_fuer: string;
 	erledigt: number;
 	erstellt: number;
+	reihenfolge: number;
 	zugewiesen_an: string | null;
 	beschreibung: string | null;
 }
 
 export const load: PageServerLoad = () => {
 	const rawAufgaben = db
-		.prepare('SELECT * FROM aufgaben ORDER BY geplant_fuer ASC, id ASC')
+		.prepare('SELECT * FROM aufgaben ORDER BY geplant_fuer ASC, reihenfolge ASC, id ASC')
 		.all() as RawAufgabe[];
 	const aufgaben = rawAufgaben.map((a) => ({
 		...a,
@@ -44,12 +45,12 @@ function naechstesDatum(datum: string, wiederholung: string): string {
 }
 
 function datumAusTeilen(data: FormData): string | null {
-	const tagNum = parseInt(data.get('tag')?.toString() ?? '');
-	const monatNum = parseInt(data.get('monat')?.toString() ?? '');
-	const jahrNum = parseInt(data.get('jahr')?.toString() ?? '');
-	if (isNaN(tagNum) || isNaN(monatNum) || isNaN(jahrNum)) return null;
-	if (tagNum < 1 || tagNum > 31 || monatNum < 1 || monatNum > 12 || jahrNum < 2024) return null;
-	return `${jahrNum}-${String(monatNum).padStart(2, '0')}-${String(tagNum).padStart(2, '0')}`;
+	const datum = data.get('datum')?.toString() ?? '';
+	const match = datum.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+	if (!match) return null;
+	const [, d, m, y] = match.map(Number);
+	if (d < 1 || d > 31 || m < 1 || m > 12 || y < 2024) return null;
+	return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 function personBereinigen(name: string) {
@@ -84,9 +85,17 @@ export const actions: Actions = {
 		if (!GUELTIGE_WIEDERHOLUNGEN.includes(wiederholung))
 			return { erfolg: false, message: 'Ungültige Wiederholung.' };
 
+		const maxReihenfolge = (
+			db
+				.prepare(
+					'SELECT COALESCE(MAX(reihenfolge), -1) as m FROM aufgaben WHERE geplant_fuer = ?'
+				)
+				.get(geplant_fuer) as { m: number }
+		).m;
+
 		db.prepare(
-			'INSERT INTO aufgaben (titel, dauer_minuten, wiederholung, geplant_fuer, zugewiesen_an) VALUES (?, ?, ?, ?, ?)'
-		).run(titel, dauer, wiederholung, geplant_fuer, zugewiesen_an);
+			'INSERT INTO aufgaben (titel, dauer_minuten, wiederholung, geplant_fuer, reihenfolge, zugewiesen_an) VALUES (?, ?, ?, ?, ?, ?)'
+		).run(titel, dauer, wiederholung, geplant_fuer, maxReihenfolge + 1, zugewiesen_an);
 
 		if (namensEingabe) {
 			db.prepare('INSERT OR IGNORE INTO personen (name) VALUES (?)').run(namensEingabe);
@@ -137,7 +146,18 @@ export const actions: Actions = {
 		const id = Number(data.get('id'));
 		const neuesDatum = data.get('neues_datum')?.toString();
 		if (!id || !neuesDatum || !/^\d{4}-\d{2}-\d{2}$/.test(neuesDatum)) error(400);
-		db.prepare('UPDATE aufgaben SET geplant_fuer = ? WHERE id = ?').run(neuesDatum, id);
+		const maxReihenfolge = (
+			db
+				.prepare(
+					'SELECT COALESCE(MAX(reihenfolge), -1) as m FROM aufgaben WHERE geplant_fuer = ? AND id != ?'
+				)
+				.get(neuesDatum, id) as { m: number }
+		).m;
+		db.prepare('UPDATE aufgaben SET geplant_fuer = ?, reihenfolge = ? WHERE id = ?').run(
+			neuesDatum,
+			maxReihenfolge + 1,
+			id
+		);
 		return { erfolg: true };
 	},
 
@@ -199,6 +219,40 @@ export const actions: Actions = {
 			id
 		);
 		personBereinigen(name);
+		return { erfolg: true };
+	},
+
+	umsortieren: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		const zielId = Number(data.get('ziel_id'));
+		const pos = data.get('position')?.toString();
+		if (!id || !zielId || (pos !== 'vor' && pos !== 'nach')) error(400);
+
+		const aufgabe = db.prepare('SELECT * FROM aufgaben WHERE id = ?').get(id) as
+			| RawAufgabe
+			| undefined;
+		const ziel = db.prepare('SELECT * FROM aufgaben WHERE id = ?').get(zielId) as
+			| RawAufgabe
+			| undefined;
+		if (!aufgabe || !ziel || aufgabe.geplant_fuer !== ziel.geplant_fuer) error(400);
+
+		const alle = db
+			.prepare(
+				'SELECT id FROM aufgaben WHERE geplant_fuer = ? ORDER BY reihenfolge ASC, id ASC'
+			)
+			.all(aufgabe.geplant_fuer) as { id: number }[];
+
+		const ohne = alle.filter((t) => t.id !== id);
+		const zielIdx = ohne.findIndex((t) => t.id === zielId);
+		if (zielIdx === -1) error(400);
+		ohne.splice(pos === 'nach' ? zielIdx + 1 : zielIdx, 0, { id });
+
+		db.transaction(() => {
+			ohne.forEach((t, i) =>
+				db.prepare('UPDATE aufgaben SET reihenfolge = ? WHERE id = ?').run(i, t.id)
+			);
+		})();
 		return { erfolg: true };
 	},
 

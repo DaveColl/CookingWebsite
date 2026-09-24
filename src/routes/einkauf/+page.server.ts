@@ -12,7 +12,7 @@ interface EinkaufsArtikel {
 
 export const load: PageServerLoad = () => {
 	const artikel = db
-		.prepare('SELECT * FROM einkaufsliste ORDER BY erstellt ASC')
+		.prepare('SELECT * FROM einkaufsliste ORDER BY name ASC')
 		.all() as EinkaufsArtikel[];
 	return { artikel };
 };

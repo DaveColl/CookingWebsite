@@ -45,8 +45,17 @@
 	let neueAufgabeOffen = $state(false);
 	let zuweisenId = $state<number | null>(null);
 	let zuweisenWert = $state('');
+
+	// Drag state (pointer events — works on both mouse and touch)
 	let dragId = $state<number | null>(null);
 	let dragZielDatum = $state<string | null>(null);
+	let dragOverId = $state<number | null>(null);
+	let dragOverPos = $state<'vor' | 'nach' | null>(null);
+	let pointerActive = $state(false);
+	let pointerStart = { x: 0, y: 0 };
+
+	// Quick-create state (click on day)
+	let schnellErstellungDatum = $state<string | null>(null);
 
 	// Modal state
 	let detailId = $state<number | null>(null);
@@ -54,9 +63,7 @@
 	let editDauer = $state(15);
 	let editBeschreibung = $state('');
 	let editWiederholung = $state('einmalig');
-	let editTag = $state('');
-	let editMonat = $state('');
-	let editJahr = $state('');
+	let editDatum = $state('');
 	let modalZuweisenOffen = $state(false);
 	let modalZuweisenWert = $state('');
 
@@ -88,6 +95,14 @@
 	const heuteJahr = $derived(heuteParts[0]);
 	const heuteMonat = $derived(String(parseInt(heuteParts[1])));
 	const heuteTag = $derived(String(parseInt(heuteParts[2])));
+	const heuteDatum = $derived(
+		`${heuteTag.padStart(2, '0')}.${heuteMonat.padStart(2, '0')}.${heuteJahr}`
+	);
+
+	function isoToEu(iso: string): string {
+		const [y, m, d] = iso.split('-');
+		return `${d}.${m}.${y}`;
+	}
 
 	const wocheTage = $derived.by(() => {
 		const day = bezugsDatum.getDay();
@@ -176,38 +191,103 @@
 		return farben[name.charCodeAt(0) % farben.length];
 	}
 
-	function onDragStart(id: number, event: DragEvent) {
+	function onInfoPointerDown(id: number, e: PointerEvent) {
+		if (e.button !== 0 && e.pointerType === 'mouse') return;
 		dragId = id;
-		event.dataTransfer!.effectAllowed = 'move';
+		pointerStart = { x: e.clientX, y: e.clientY };
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		e.preventDefault();
 	}
 
-	function onDragOver(datum: string, event: DragEvent) {
-		event.preventDefault();
-		event.dataTransfer!.dropEffect = 'move';
-		dragZielDatum = datum;
-	}
-
-	function onDragLeave() {
-		dragZielDatum = null;
-	}
-
-	async function onDrop(datum: string, event: DragEvent) {
-		event.preventDefault();
-		dragZielDatum = null;
+	function onInfoPointerMove(e: PointerEvent) {
 		if (dragId === null) return;
-		const id = dragId;
-		dragId = null;
+		const moved = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
+		if (moved < 8) return;
+		pointerActive = true;
 
-		// Optimistic update
-		const index = activeData.aufgaben.findIndex((a) => a.id === id);
-		if (index !== -1) {
-			activeData.aufgaben[index].geplant_fuer = datum;
+		const els = document.elementsFromPoint(e.clientX, e.clientY);
+		const cardEl = els.find(
+			(el) => el instanceof HTMLElement && (el as HTMLElement).dataset.aufgabeId
+		) as HTMLElement | undefined;
+		const dayEl = els.find(
+			(el) => el instanceof HTMLElement && (el as HTMLElement).dataset.datum
+		) as HTMLElement | undefined;
+
+		if (cardEl && cardEl.dataset.aufgabeId) {
+			const targetId = Number(cardEl.dataset.aufgabeId);
+			if (targetId !== dragId) {
+				dragOverId = targetId;
+				const rect = cardEl.getBoundingClientRect();
+				dragOverPos = e.clientY < rect.top + rect.height / 2 ? 'vor' : 'nach';
+				dragZielDatum = null;
+			}
+		} else if (dayEl && dayEl.dataset.datum) {
+			dragZielDatum = dayEl.dataset.datum;
+			dragOverId = null;
+			dragOverPos = null;
+		} else {
+			dragZielDatum = null;
+			dragOverId = null;
+			dragOverPos = null;
 		}
+	}
 
-		const body = new FormData();
-		body.append('id', String(id));
-		body.append('neues_datum', datum);
-		fetch('?/verschieben', { method: 'POST', body }).then(() => invalidateAll());
+	async function onInfoPointerUp(e: PointerEvent) {
+		if (!pointerActive || dragId === null) {
+			// Was a tap/click — open modal
+			const aufgabe = activeData.aufgaben.find((a) => a.id === dragId);
+			if (aufgabe) aufgabeKlick(aufgabe);
+			dragId = null;
+			pointerActive = false;
+			return;
+		}
+		const id = dragId;
+		const zielId = dragOverId;
+		const pos = dragOverPos;
+		const zielDatum = dragZielDatum;
+		dragId = null;
+		pointerActive = false;
+		dragOverId = null;
+		dragOverPos = null;
+		dragZielDatum = null;
+
+		if (zielId !== null) {
+			const quellAufgabe = activeData.aufgaben.find((a) => a.id === id);
+			const zielAufgabe = activeData.aufgaben.find((a) => a.id === zielId);
+			if (quellAufgabe && zielAufgabe && quellAufgabe.geplant_fuer === zielAufgabe.geplant_fuer) {
+				// Same day — reorder
+				const body = new FormData();
+				body.append('id', String(id));
+				body.append('ziel_id', String(zielId));
+				body.append('position', pos ?? 'nach');
+				fetch('?/umsortieren', { method: 'POST', body }).then(() => invalidateAll());
+			} else if (zielAufgabe) {
+				// Cross-day drop on a card — move to that day
+				const neuesDatum = zielAufgabe.geplant_fuer;
+				const index = activeData.aufgaben.findIndex((a) => a.id === id);
+				if (index !== -1) activeData.aufgaben[index].geplant_fuer = neuesDatum;
+				const body = new FormData();
+				body.append('id', String(id));
+				body.append('neues_datum', neuesDatum);
+				fetch('?/verschieben', { method: 'POST', body }).then(() => invalidateAll());
+			}
+		} else if (zielDatum !== null) {
+			// Move to different day (drop on empty area)
+			const index = activeData.aufgaben.findIndex((a) => a.id === id);
+			if (index !== -1) {
+				activeData.aufgaben[index].geplant_fuer = zielDatum;
+			}
+			const body = new FormData();
+			body.append('id', String(id));
+			body.append('neues_datum', zielDatum);
+			fetch('?/verschieben', { method: 'POST', body }).then(() => invalidateAll());
+		}
+	}
+
+	function tagKlick(datum: string, e: MouseEvent | PointerEvent) {
+		const target = e.target as HTMLElement;
+		if (target.closest('.aufgabe-karte') || target.closest('.schnell-form')) return;
+		schnellErstellungDatum = datum;
 	}
 
 	function aufgabeKlick(aufgabe: Aufgabe) {
@@ -216,10 +296,7 @@
 		editDauer = aufgabe.dauer_minuten;
 		editBeschreibung = aufgabe.beschreibung ?? '';
 		editWiederholung = aufgabe.wiederholung;
-		const parts = aufgabe.geplant_fuer.split('-');
-		editJahr = parts[0];
-		editMonat = String(parseInt(parts[1]));
-		editTag = String(parseInt(parts[2]));
+		editDatum = isoToEu(aufgabe.geplant_fuer);
 		modalZuweisenOffen = false;
 		modalZuweisenWert = '';
 	}
@@ -301,10 +378,9 @@
 				const titel = formData.get('titel')?.toString() || '';
 				const dauer_minuten = Number(formData.get('dauer_minuten'));
 				const wiederholung = formData.get('wiederholung')?.toString() || 'einmalig';
-				const jahr = formData.get('jahr')?.toString() || '';
-				const monat = formData.get('monat')?.toString() || '';
-				const tag = formData.get('tag')?.toString() || '';
-				const geplant_fuer = `${jahr}-${monat.padStart(2, '0')}-${tag.padStart(2, '0')}`;
+				const datumRoh = formData.get('datum')?.toString() || '';
+				const [dd, mm, yyyy] = datumRoh.split('.');
+				const geplant_fuer = `${yyyy}-${(mm ?? '01').padStart(2, '0')}-${(dd ?? '01').padStart(2, '0')}`;
 				const zugewiesen_an_raw = formData.get('zugewiesen_an')?.toString();
 				const zugewiesen_an = zugewiesen_an_raw ? [zugewiesen_an_raw] : [];
 
@@ -352,40 +428,16 @@
 				<option value="woechentlich">Wöchentlich</option>
 				<option value="monatlich">Monatlich</option>
 			</select>
-			<div class="datum-gruppe">
-				<input
-					type="text"
-					inputmode="numeric"
-					name="tag"
-					value={heuteTag}
-					maxlength="2"
-					placeholder="TT"
-					class="datum-teil datum-tag"
-					required
-				/>
-				<span class="datum-trenner">.</span>
-				<input
-					type="text"
-					inputmode="numeric"
-					name="monat"
-					value={heuteMonat}
-					maxlength="2"
-					placeholder="MM"
-					class="datum-teil datum-monat"
-					required
-				/>
-				<span class="datum-trenner">.</span>
-				<input
-					type="text"
-					inputmode="numeric"
-					name="jahr"
-					value={heuteJahr}
-					maxlength="4"
-					placeholder="JJJJ"
-					class="datum-teil datum-jahr"
-					required
-				/>
-			</div>
+			<input
+				type="text"
+				inputmode="numeric"
+				name="datum"
+				value={heuteDatum}
+				maxlength="10"
+				placeholder="TT.MM.JJJJ"
+				class="datum-input"
+				required
+			/>
 			<input
 				type="text"
 				name="zugewiesen_an"
@@ -407,12 +459,11 @@
 			<div
 				class="tag-spalte"
 				role="list"
+				data-datum={datum}
 				class:heute={datum === heute}
 				class:drag-ziel={dragZielDatum === datum}
 				style={ansicht === 'monat' && i === 0 ? `grid-column-start: ${monatErsterWochentag}` : ''}
-				ondragover={(e) => onDragOver(datum, e)}
-				ondragleave={onDragLeave}
-				ondrop={(e) => onDrop(datum, e)}
+				onclick={(e) => tagKlick(datum, e)}
 			>
 				<div class="tag-kopf">
 					<span class="tag-wochentag">{wochentagKurz(datum)}</span>
@@ -423,17 +474,20 @@
 					<div
 						class="aufgabe-karte"
 						role="listitem"
+						data-aufgabe-id={aufgabe.id}
 						class:erledigt={aufgabe.erledigt === 1}
 						class:ueberfaellig
-						draggable="true"
-						ondragstart={(e) => onDragStart(aufgabe.id, e)}
+						class:drag-over-vor={dragOverId === aufgabe.id && dragOverPos === 'vor'}
+						class:drag-over-nach={dragOverId === aufgabe.id && dragOverPos === 'nach'}
 					>
 						<div
 							class="aufgabe-info"
 							role="button"
 							tabindex="0"
-							onclick={() => aufgabeKlick(aufgabe)}
 							onkeydown={(e) => e.key === 'Enter' && aufgabeKlick(aufgabe)}
+							onpointerdown={(e) => onInfoPointerDown(aufgabe.id, e)}
+							onpointermove={onInfoPointerMove}
+							onpointerup={onInfoPointerUp}
 						>
 							<span class="aufgabe-titel-text">{kapName(aufgabe.titel)}</span>
 							<span class="aufgabe-dauer">⏱ {aufgabe.dauer_minuten} Min.</span>
@@ -632,6 +686,61 @@
 						</div>
 					</div>
 				{/each}
+
+				{#if schnellErstellungDatum === datum}
+					<form
+						class="schnell-form"
+						method="POST"
+						action="?/erstellen"
+						use:enhance={({ formData }) => {
+							const titelV = formData.get('titel')?.toString() || '';
+							const datumV = formData.get('datum')?.toString() || '';
+							const [dd2, mm2, yyyy2] = datumV.split('.');
+							const gf = `${yyyy2}-${(mm2 ?? '01').padStart(2, '0')}-${(dd2 ?? '01').padStart(2, '0')}`;
+							activeData.aufgaben = [
+								...activeData.aufgaben,
+								{
+									id: Math.random(),
+									titel: titelV.toLowerCase(),
+									dauer_minuten: 15,
+									wiederholung: 'einmalig',
+									geplant_fuer: gf,
+									erledigt: 0,
+									erstellt: Date.now(),
+									zugewiesen_an: [],
+									beschreibung: null
+								}
+							];
+							schnellErstellungDatum = null;
+							return async ({ update }) => {
+								await update({ reset: true });
+							};
+						}}
+						onclick={(e) => e.stopPropagation()}
+					>
+						<input type="hidden" name="datum" value={isoToEu(datum)} />
+						<input type="hidden" name="dauer_minuten" value="15" />
+						<input type="hidden" name="wiederholung" value="einmalig" />
+						<input
+							type="text"
+							name="titel"
+							placeholder="Neue Aufgabe…"
+							required
+							autocomplete="off"
+							list="titel-liste"
+							use:fokussieren
+							class="schnell-titel"
+						/>
+						<div class="schnell-aktionen">
+							<button type="submit" class="btn-aktion ok">✓</button>
+							<button
+								type="button"
+								class="btn-aktion abbrechen"
+								onclick={(e) => { e.stopPropagation(); schnellErstellungDatum = null; }}>✕</button
+							>
+						</div>
+					</form>
+				{/if}
 			</div>
 		{/each}
 	</div>
@@ -674,10 +783,9 @@
 					const dauer_minuten = Number(formData.get('dauer_minuten'));
 					const beschreibung = formData.get('beschreibung')?.toString() || null;
 					const wiederholung = formData.get('wiederholung')?.toString() || 'einmalig';
-					const jahr = formData.get('jahr')?.toString() || '';
-					const monat = formData.get('monat')?.toString() || '';
-					const tag = formData.get('tag')?.toString() || '';
-					const geplant_fuer = `${jahr}-${monat.padStart(2, '0')}-${tag.padStart(2, '0')}`;
+					const datumRoh = formData.get('datum')?.toString() || '';
+					const [dd, mm, yyyy] = datumRoh.split('.');
+					const geplant_fuer = `${yyyy}-${(mm ?? '01').padStart(2, '0')}-${(dd ?? '01').padStart(2, '0')}`;
 
 					const index = activeData.aufgaben.findIndex((a) => a.id === id);
 					if (index !== -1) {
@@ -714,40 +822,16 @@
 				/>
 
 				<div class="modal-meta-zeile">
-					<div class="datum-gruppe">
-						<input
-							type="text"
-							inputmode="numeric"
-							name="tag"
-							bind:value={editTag}
-							maxlength="2"
-							placeholder="TT"
-							class="datum-teil datum-tag"
-							required
-						/>
-						<span class="datum-trenner">.</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							name="monat"
-							bind:value={editMonat}
-							maxlength="2"
-							placeholder="MM"
-							class="datum-teil datum-monat"
-							required
-						/>
-						<span class="datum-trenner">.</span>
-						<input
-							type="text"
-							inputmode="numeric"
-							name="jahr"
-							bind:value={editJahr}
-							maxlength="4"
-							placeholder="JJJJ"
-							class="datum-teil datum-jahr"
-							required
-						/>
-					</div>
+					<input
+						type="text"
+						inputmode="numeric"
+						name="datum"
+						bind:value={editDatum}
+						maxlength="10"
+						placeholder="TT.MM.JJJJ"
+						class="datum-input modal-datum-input"
+						required
+					/>
 
 					<div class="dauer-gruppe">
 						<input
@@ -1157,67 +1241,28 @@
 		background: #3d6528;
 	}
 
-	/* Date group (used in create form and modal) */
-	.datum-gruppe {
-		display: flex;
-		align-items: center;
+	/* Single date input (used in create form and modal) */
+	.datum-input {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.9rem;
+		color: #1a1a18;
+		background: #f4f1eb;
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
-		overflow: hidden;
-		background: #f4f1eb;
-	}
-
-	.datum-teil {
-		border: none;
-		background: transparent;
-		font-family: 'Outfit', sans-serif;
-		font-size: 0.88rem;
-		color: #1a1a18;
-		text-align: center;
-		padding: 0.42rem 0.2rem;
+		padding: 0.45rem 0.7rem;
 		outline: none;
-		-moz-appearance: textfield;
-		appearance: textfield;
+		width: 120px;
+		transition: border-color 0.15s;
 	}
 
-	.datum-teil::-webkit-inner-spin-button,
-	.datum-teil::-webkit-outer-spin-button {
-		-webkit-appearance: none;
+	.datum-input:focus {
+		border-color: #4a7c3f;
 	}
 
-	.datum-tag,
-	.datum-monat {
-		width: 28px;
-	}
-
-	.datum-jahr {
-		width: 46px;
-	}
-
-	.datum-trenner {
-		color: #8a7d6e;
-		font-size: 0.9rem;
-		user-select: none;
-		padding: 0 1px;
-	}
-
-	/* Slightly larger date inputs in the neue-form context */
-	.neue-form .datum-gruppe {
-		border: 1.5px solid #ddd5c5;
-	}
-
-	.neue-form .datum-teil {
-		font-size: 0.9rem;
-		padding: 0.45rem 0.2rem;
-	}
-
-	.neue-form .datum-tag,
-	.neue-form .datum-monat {
-		width: 30px;
-	}
-
-	.neue-form .datum-jahr {
-		width: 50px;
+	.modal-datum-input {
+		width: 120px;
+		font-size: 0.88rem;
+		padding: 0.42rem 0.7rem;
 	}
 
 	/* Calendar grids */
@@ -1294,12 +1339,7 @@
 		border-radius: 6px;
 		padding: 0.4rem 0.5rem;
 		font-size: 0.78rem;
-		cursor: grab;
-	}
-
-	.aufgabe-karte:active {
-		cursor: grabbing;
-		opacity: 0.6;
+		position: relative;
 	}
 
 	.aufgabe-karte.ueberfaellig {
@@ -1315,12 +1355,25 @@
 		text-decoration: line-through;
 	}
 
+	.aufgabe-karte.drag-over-vor {
+		border-top: 2px solid #4a7c3f;
+	}
+
+	.aufgabe-karte.drag-over-nach {
+		border-bottom: 2px solid #4a7c3f;
+	}
+
 	.aufgabe-info {
 		display: flex;
 		flex-direction: column;
 		gap: 0.1rem;
-		cursor: pointer;
+		cursor: grab;
 		user-select: none;
+		touch-action: none;
+	}
+
+	.aufgabe-info:active {
+		cursor: grabbing;
 	}
 
 	.aufgabe-titel-text {
@@ -1459,6 +1512,32 @@
 
 	.btn-verschieben:hover {
 		background: #fff3cc;
+	}
+
+	/* ── Quick-create inline form ─────────────────────── */
+	.schnell-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		margin-top: 0.2rem;
+	}
+
+	.schnell-titel {
+		font-family: 'Outfit', sans-serif;
+		font-size: 0.78rem;
+		padding: 0.25rem 0.4rem;
+		border: 1.5px solid #4a7c3f;
+		border-radius: 5px;
+		background: #fdfaf4;
+		color: #1a1a18;
+		outline: none;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.schnell-aktionen {
+		display: flex;
+		gap: 0.2rem;
 	}
 
 	/* ── Modal ─────────────────────────────────────────── */

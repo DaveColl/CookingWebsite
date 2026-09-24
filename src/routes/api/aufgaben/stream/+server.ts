@@ -30,7 +30,7 @@ export const GET: RequestHandler = ({ request }) => {
 				}
 
 				const rawAufgaben = db
-					.prepare('SELECT * FROM aufgaben ORDER BY geplant_fuer ASC, id ASC')
+					.prepare('SELECT * FROM aufgaben ORDER BY geplant_fuer ASC, reihenfolge ASC, id ASC')
 					.all() as RawAufgabe[];
 
 				const aufgaben = rawAufgaben.map((a) => ({

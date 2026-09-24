@@ -16,7 +16,7 @@ export const GET: RequestHandler = ({ request }) => {
 					}
 					return;
 				}
-				const rows = db.prepare('SELECT * FROM einkaufsliste ORDER BY erstellt ASC').all();
+				const rows = db.prepare('SELECT * FROM einkaufsliste ORDER BY name ASC').all();
 				controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(rows)}\n\n`));
 			};
 

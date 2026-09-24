@@ -461,9 +461,11 @@
 	@media (max-width: 500px) {
 		.hinzufuegen-zeile {
 			grid-template-columns: 1fr 48px;
+			grid-template-rows: auto auto;
 		}
 		.menge-eingabe {
-			display: none;
+			grid-row: 2;
+			grid-column: 1;
 		}
 	}
 </style>
