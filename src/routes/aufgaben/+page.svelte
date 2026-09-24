@@ -1098,7 +1098,16 @@
 		display: flex;
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
-		overflow: hidden;
+	}
+
+	/* Ecken an den Buttons statt overflow: hidden am Container, damit Fokusring
+	   und Touch-Trefffläche nicht abgeschnitten werden */
+	.ansicht-toggle button:first-child {
+		border-radius: var(--radius-s) 0 0 var(--radius-s);
+	}
+
+	.ansicht-toggle button:last-child {
+		border-radius: 0 var(--radius-s) var(--radius-s) 0;
 	}
 
 	.ansicht-toggle button {
@@ -1196,7 +1205,6 @@
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
 		padding: 0.45rem 0.7rem;
-		outline: none;
 		transition: border-color 0.15s;
 		color: #1a1a18;
 	}
@@ -1250,7 +1258,6 @@
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
 		padding: 0.45rem 0.7rem;
-		outline: none;
 		width: 120px;
 		transition: border-color 0.15s;
 	}
@@ -1530,7 +1537,6 @@
 		border-radius: 5px;
 		background: #fdfaf4;
 		color: #1a1a18;
-		outline: none;
 		width: 100%;
 		box-sizing: border-box;
 	}
@@ -1625,7 +1631,6 @@
 		border-bottom: 2px solid transparent;
 		padding: 0.15rem 0;
 		width: 100%;
-		outline: none;
 		transition: border-color 0.15s;
 	}
 
@@ -1645,7 +1650,6 @@
 		align-items: center;
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
-		overflow: hidden;
 		background: #f4f1eb;
 		padding-right: 0.5rem;
 	}
@@ -1659,9 +1663,13 @@
 		padding: 0.42rem 0.5rem;
 		width: 52px;
 		text-align: center;
-		outline: none;
 		-moz-appearance: textfield;
 		appearance: textfield;
+	}
+
+	/* Fokusring innerhalb der .dauer-gruppe, damit er nicht über den Gruppenrand ragt */
+	.dauer-input:focus-visible {
+		outline-offset: -2px;
 	}
 
 	.dauer-input::-webkit-inner-spin-button,
@@ -1683,7 +1691,6 @@
 		border-radius: 8px;
 		padding: 0.42rem 0.6rem;
 		color: #1a1a18;
-		outline: none;
 		cursor: pointer;
 	}
 
@@ -1697,7 +1704,6 @@
 		color: #1a1a18;
 		resize: vertical;
 		min-height: 80px;
-		outline: none;
 		transition: border-color 0.15s;
 		width: 100%;
 		box-sizing: border-box;
@@ -1804,7 +1810,6 @@
 		background: #f4f1eb;
 		width: 110px;
 		color: #1a1a18;
-		outline: none;
 	}
 
 	.btn-modal-aktion {
@@ -1986,6 +1991,115 @@
 			max-width: 100%;
 			border-radius: 16px 16px 0 0;
 			max-height: 88vh;
+		}
+	}
+	/* Touch: Trefffläche ≥ 44px (Design-System, Bewegung Regel 9).
+	   Kleine Buttons bleiben optisch klein und bekommen ein unsichtbares,
+	   zentriertes Pseudo-Element; Abstände sind so gewählt, dass sich die
+	   erweiterten Flächen nicht über sichtbare Nachbarn legen. Eingaben und
+	   Text-Buttons in Formularen/Modal bekommen min-height: 44px. */
+	@media (pointer: coarse) {
+		.ansicht-toggle button,
+		.pfeil,
+		.btn-neue,
+		.zugewiesen-kreis,
+		.btn-aktion,
+		.btn-verschieben,
+		.modal-schliessen,
+		.modal-person-chip,
+		.modal-person-hinzufuegen,
+		.btn-modal-aktion {
+			position: relative;
+		}
+
+		.ansicht-toggle button::after,
+		.pfeil::after,
+		.btn-neue::after,
+		.zugewiesen-kreis::after,
+		.btn-aktion::after,
+		.btn-verschieben::after,
+		.modal-schliessen::after,
+		.modal-person-chip::after,
+		.modal-person-hinzufuegen::after,
+		.btn-modal-aktion::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 100%;
+			height: 100%;
+			min-width: 44px;
+			min-height: 44px;
+			transform: translate(-50%, -50%);
+		}
+
+		/* Toolbar: Abstand ≥ Summe der unsichtbaren Erweiterungen (8 + 8px) */
+		.planer-steuerung {
+			gap: var(--abstand-4);
+		}
+
+		/* Karten-Buttons: sichtbar 32px, Abstand 12px (= 44 − 32), damit sich die
+		   erweiterten Flächen benachbarter Buttons nicht überlappen */
+		.zugewiesen-kreis,
+		.btn-aktion,
+		.btn-modal-aktion {
+			width: 32px;
+			height: 32px;
+		}
+
+		.btn-aktion.ok {
+			width: auto;
+			min-width: 32px;
+		}
+
+		.btn-verschieben,
+		.modal-person-chip,
+		.modal-person-hinzufuegen {
+			min-height: 32px;
+		}
+
+		.zugewiesen-zeile,
+		.aufgabe-aktionen,
+		.zuweisen-form,
+		.schnell-aktionen,
+		.modal-personen,
+		.modal-zuweisen-form {
+			gap: var(--abstand-3);
+		}
+
+		.zugewiesen-zeile {
+			margin-top: var(--abstand-2);
+		}
+
+		.aufgabe-aktionen {
+			margin-top: var(--abstand-3);
+		}
+
+		.woche-grid .aufgabe-info {
+			min-height: 44px;
+		}
+
+		.neue-form input,
+		.neue-form select,
+		.btn-speichern-aufgabe,
+		.zuweisen-form input[type='text'],
+		.schnell-titel,
+		.modal-titel-input,
+		.datum-input,
+		.dauer-gruppe,
+		.wiederholung-select,
+		.modal-zuweisen-form input[type='text'],
+		.btn-modal-speichern,
+		.btn-modal-erledigen,
+		.btn-modal-rueckgaengig,
+		.btn-modal-loeschen {
+			min-height: 44px;
+		}
+
+		/* Eingabe reicht über den 1.5px-Rand der Gruppe, Trefffläche = 44px */
+		.dauer-input {
+			align-self: stretch;
+			margin-block: -1.5px;
 		}
 	}
 </style>

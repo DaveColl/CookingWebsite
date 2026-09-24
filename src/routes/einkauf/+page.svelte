@@ -260,16 +260,13 @@
 		border: 1.5px solid #ddd5c5;
 		border-radius: 10px;
 		padding: 0.7rem 0.95rem;
-		outline: none;
-		transition:
-			border-color 0.18s,
-			box-shadow 0.18s;
+		transition: border-color var(--dauer-schnell) var(--kurve);
 	}
 
+	/* Fokusring kommt global über :focus-visible (+layout.svelte) */
 	.artikel-eingabe:focus,
 	.menge-eingabe:focus {
-		border-color: #4a7c3f;
-		box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.13);
+		border-color: var(--farbe-akzent);
 	}
 
 	.artikel-eingabe::placeholder,
@@ -452,6 +449,24 @@
 
 	.link-btn:hover {
 		text-decoration: underline;
+	}
+
+	/* Trefffläche ≥ 44px auf Touch, sichtbare Größe unverändert */
+	@media (pointer: coarse) {
+		.link-btn {
+			position: relative;
+		}
+		.link-btn::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 100%;
+			height: 100%;
+			min-width: 44px;
+			min-height: 44px;
+			transform: translate(-50%, -50%);
+		}
 	}
 
 	.erledigt-liste {

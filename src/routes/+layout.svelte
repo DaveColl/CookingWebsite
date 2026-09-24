@@ -59,7 +59,6 @@
 		--schatten-s: 0 2px 8px rgba(44, 74, 30, 0.08);
 		--schatten-m: 0 8px 28px rgba(44, 74, 30, 0.1);
 		--schatten-l: 0 24px 64px rgba(0, 0, 0, 0.22);
-		--fokus-ring: 0 0 0 3px rgba(74, 124, 63, 0.13);
 
 		/* Abstände */
 		--abstand-1: 0.25rem;
@@ -104,8 +103,9 @@
 		min-height: 100vh;
 	}
 
-	/* Einheitlicher Fokus für Tastaturbedienung. Eingabefelder behalten
-	   zusätzlich Rand + --fokus-ring aus ihrer eigenen :focus-Regel. */
+	/* Einheitlicher Fokus für Tastaturbedienung, gilt für alle Elemente inkl.
+	   Eingabefeldern (die zusätzlich den Rand auf --farbe-akzent färben).
+	   Nie outline: none setzen. */
 	:global(:focus-visible) {
 		outline: 2px solid var(--farbe-akzent);
 		outline-offset: 2px;
@@ -130,20 +130,20 @@
 	:global(.seite-kopf) {
 		margin-bottom: 2.5rem;
 		padding-bottom: 2rem;
-		border-bottom: 1px solid #e5ddd0;
+		border-bottom: 1px solid var(--farbe-rand);
 	}
 	:global(.seite-titel) {
-		font-family: 'Lora', serif;
-		font-size: clamp(1.9rem, 4vw, 2.8rem);
+		font-family: var(--schrift-titel);
+		font-size: var(--text-seite);
 		font-weight: 700;
-		color: #2c4a1e;
+		color: var(--farbe-primaer);
 		letter-spacing: -0.025em;
 		line-height: 1.15;
 		margin-bottom: 0.35rem;
 	}
 	:global(.seite-unter) {
-		font-size: 0.95rem;
-		color: #6b6255;
+		font-size: var(--text-ui);
+		color: var(--farbe-text-2);
 		font-weight: 300;
 	}
 
@@ -160,7 +160,7 @@
 	:global(.form-row) {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
+		gap: var(--abstand-4);
 	}
 	@media (max-width: 500px) {
 		:global(.form-row) {
@@ -168,29 +168,28 @@
 		}
 	}
 	:global(label) {
-		font-size: 0.72rem;
+		font-size: var(--text-label);
 		font-weight: 600;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
-		color: #8a7d6e;
+		color: var(--farbe-text-3);
 	}
+	/* Fokus der Eingabefelder: Rand --farbe-akzent (bei :focus) plus der globale
+	   :focus-visible-Ring oben. Kein outline: none. */
 	:global(input[type='text']),
 	:global(input[type='number']),
 	:global(textarea),
 	:global(select) {
-		font-family: 'Outfit', sans-serif;
-		font-size: 1rem;
-		color: #1a1a18;
-		background: #fdfaf4;
-		border: 1.5px solid #ddd5c5;
-		border-radius: 10px;
+		font-family: var(--schrift-text);
+		font-size: var(--text-basis);
+		color: var(--farbe-text);
+		background: var(--farbe-flaeche);
+		border: 1.5px solid var(--farbe-rand-stark);
+		border-radius: var(--radius-m);
 		padding: 0.7rem 0.95rem;
 		width: 100%;
-		outline: none;
 		appearance: none;
-		transition:
-			border-color 0.18s,
-			box-shadow 0.18s;
+		transition: border-color var(--dauer-schnell) var(--kurve);
 	}
 	:global(input[type='number']) {
 		-moz-appearance: textfield;
@@ -204,23 +203,19 @@
 	:global(input:focus),
 	:global(textarea:focus),
 	:global(select:focus) {
-		border-color: #4a7c3f;
-		box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.13);
-	}
-	/* Textfelder zeigen Fokus über Rand + Ring (s. o.), nicht zusätzlich per Outline */
-	:global(textarea:focus-visible),
-	:global(select:focus-visible) {
-		outline: none;
+		border-color: var(--farbe-akzent);
 	}
 	:global(input::placeholder),
 	:global(textarea::placeholder) {
-		color: #c4bab0;
+		color: var(--farbe-text-leise);
 	}
 	:global(textarea) {
 		min-height: 150px;
 		resize: vertical;
 		line-height: 1.6;
 	}
+	/* Hex im Data-URI (%238A7D6E = --farbe-text-3) ist die einzige erlaubte
+	   Ausnahme: CSS-Variablen wirken nicht innerhalb von url(). */
 	:global(select) {
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A7D6E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 		background-repeat: no-repeat;
@@ -230,20 +225,20 @@
 	}
 
 	:global(.zutaten-block) {
-		background: #fdfaf4;
-		border: 1.5px solid #ddd5c5;
-		border-radius: 14px;
+		background: var(--farbe-flaeche);
+		border: 1.5px solid var(--farbe-rand-stark);
+		border-radius: var(--radius-l);
 		padding: 1.4rem 1.4rem 1.1rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.7rem;
 	}
 	:global(.zutaten-label) {
-		font-family: 'Lora', serif;
+		font-family: var(--schrift-titel);
 		font-size: 1.05rem;
 		font-style: italic;
 		font-weight: 500;
-		color: #2c4a1e;
+		color: var(--farbe-primaer);
 		margin-bottom: 0.1rem;
 	}
 	:global(.zutat-zeile) {
@@ -260,10 +255,10 @@
 	:global(.btn-entfernen) {
 		width: 34px;
 		height: 34px;
-		border-radius: 50%;
-		border: 1.5px solid #ddd5c5;
+		border-radius: var(--radius-rund);
+		border: 1.5px solid var(--farbe-rand-stark);
 		background: transparent;
-		color: #b0a898;
+		color: var(--farbe-text-3);
 		font-size: 0.8rem;
 		cursor: pointer;
 		display: flex;
@@ -271,53 +266,41 @@
 		justify-content: center;
 		flex-shrink: 0;
 		transition:
-			border-color 0.15s,
-			color 0.15s,
-			background 0.15s;
-	}
-	:global(.btn-entfernen:hover) {
-		border-color: #c0392b;
-		color: #c0392b;
-		background: #fdf2f0;
+			border-color var(--dauer-schnell) var(--kurve),
+			color var(--dauer-schnell) var(--kurve),
+			background var(--dauer-schnell) var(--kurve);
 	}
 	:global(.btn-hinzufuegen) {
 		align-self: flex-start;
-		font-family: 'Outfit', sans-serif;
-		font-size: 0.85rem;
+		font-family: var(--schrift-text);
+		font-size: var(--text-klein);
 		font-weight: 500;
-		color: #4a7c3f;
+		color: var(--farbe-akzent);
 		background: transparent;
-		border: 1.5px dashed #9dc495;
+		border: 1.5px dashed var(--farbe-akzent-hell);
 		border-radius: 8px;
 		padding: 0.45rem 0.9rem;
 		cursor: pointer;
 		transition:
-			background 0.15s,
-			border-color 0.15s;
+			background var(--dauer-schnell) var(--kurve),
+			border-color var(--dauer-schnell) var(--kurve);
 		margin-top: 0.2rem;
 	}
-	:global(.btn-hinzufuegen:hover) {
-		background: rgba(74, 124, 63, 0.07);
-		border-color: #4a7c3f;
-	}
 	:global(.btn-speichern) {
-		font-family: 'Outfit', sans-serif;
-		font-size: 1rem;
+		font-family: var(--schrift-text);
+		font-size: var(--text-basis);
 		font-weight: 600;
-		color: #fdfaf4;
-		background: #2c4a1e;
+		color: var(--farbe-flaeche);
+		background: var(--farbe-primaer);
 		border: none;
-		border-radius: 10px;
+		border-radius: var(--radius-m);
 		padding: 0.85rem 2rem;
 		cursor: pointer;
 		align-self: flex-start;
 		transition:
-			background 0.18s,
-			transform 0.1s;
+			background var(--dauer-schnell) var(--kurve),
+			transform var(--dauer-schnell) var(--kurve);
 		margin-top: 0.4rem;
-	}
-	:global(.btn-speichern:hover) {
-		background: #3d6528;
 	}
 	:global(.btn-speichern:active) {
 		transform: translateY(1px);
@@ -325,20 +308,20 @@
 
 	:global(.meldung-fehler) {
 		padding: 0.75rem 1rem;
-		border-radius: 10px;
-		border: 1px solid #f0c0c0;
-		border-left: 4px solid #c0392b;
-		background: #fdf5f5;
-		color: #8b2020;
+		border-radius: var(--radius-m);
+		border: 1px solid var(--farbe-rand);
+		border-left: 4px solid var(--farbe-fehler);
+		background: var(--farbe-fehler-flaeche);
+		color: var(--farbe-fehler);
 		font-size: 0.9rem;
 	}
 	:global(.meldung-erfolg) {
 		padding: 0.75rem 1rem;
-		border-radius: 10px;
-		border: 1px solid #b8d8b8;
-		border-left: 4px solid #2c4a1e;
-		background: #f3f8f1;
-		color: #2c4a1e;
+		border-radius: var(--radius-m);
+		border: 1px solid var(--farbe-rand);
+		border-left: 4px solid var(--farbe-primaer);
+		background: var(--farbe-erfolg-flaeche);
+		color: var(--farbe-primaer);
 		font-size: 0.9rem;
 	}
 
@@ -353,33 +336,29 @@
 		}
 	}
 	:global(.rezept-karte) {
-		background: #fdfaf4;
-		border: 1px solid #e5ddd0;
-		border-radius: 14px;
+		background: var(--farbe-flaeche);
+		border: 1px solid var(--farbe-rand);
+		border-radius: var(--radius-l);
 		padding: 1.4rem;
 		text-decoration: none;
 		color: inherit;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--abstand-2);
 		transition:
-			box-shadow 0.2s,
-			transform 0.2s;
-	}
-	:global(.rezept-karte:hover) {
-		box-shadow: 0 8px 28px rgba(44, 74, 30, 0.1);
-		transform: translateY(-2px);
+			box-shadow var(--dauer-mittel) var(--kurve),
+			transform var(--dauer-mittel) var(--kurve);
 	}
 	:global(.karte-titel) {
-		font-family: 'Lora', serif;
-		font-size: 1.15rem;
+		font-family: var(--schrift-titel);
+		font-size: var(--text-karte);
 		font-weight: 700;
-		color: #2c4a1e;
+		color: var(--farbe-primaer);
 		line-height: 1.3;
 	}
 	:global(.karte-meta) {
 		font-size: 0.82rem;
-		color: #8a7d6e;
+		color: var(--farbe-text-3);
 		font-weight: 300;
 	}
 	:global(.karte-bild) {
@@ -392,12 +371,52 @@
 	:global(.karte-bild-platzhalter) {
 		width: 100%;
 		aspect-ratio: 4 / 3;
-		background: #f0ebe2;
+		background: var(--farbe-flaeche-2);
 		border-radius: 8px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 2rem;
 		margin-bottom: 0.2rem;
+	}
+
+	/* Hover nur auf Geräten mit echtem Hover (Design-System, Bewegung Regel 4) */
+	@media (hover: hover) {
+		:global(.btn-entfernen:hover) {
+			border-color: var(--farbe-fehler);
+			color: var(--farbe-fehler);
+			background: var(--farbe-fehler-flaeche);
+		}
+		:global(.btn-hinzufuegen:hover) {
+			background: var(--farbe-akzent-flaeche);
+			border-color: var(--farbe-akzent);
+		}
+		:global(.btn-speichern:hover) {
+			background: var(--farbe-primaer-hover);
+		}
+		:global(.rezept-karte:hover) {
+			box-shadow: var(--schatten-m);
+			transform: translateY(-2px);
+		}
+	}
+
+	/* Trefffläche ≥ 44px auf Touch-Geräten, ohne die sichtbare Größe zu ändern:
+	   ein unsichtbares, zentriertes Pseudo-Element vergrößert den Klickbereich.
+	   Nachbarn brauchen mindestens (44px − sichtbare Größe) / 2 Abstand. */
+	@media (pointer: coarse) {
+		:global(.btn-entfernen) {
+			position: relative;
+		}
+		:global(.btn-entfernen::after) {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 100%;
+			height: 100%;
+			min-width: 44px;
+			min-height: 44px;
+			transform: translate(-50%, -50%);
+		}
 	}
 </style>

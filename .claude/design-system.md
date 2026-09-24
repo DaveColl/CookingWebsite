@@ -9,13 +9,15 @@ Alle Tokens dieser Datei sind als CSS Custom Properties in `src/routes/+layout.s
 
 ### Stand der Umstellung
 
-| Bereich                                                                       | Status                                            |
-| ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| Tokens, `body`, `:focus-visible`, reduced-motion                              | umgestellt (`+layout.svelte`)                     |
-| Nav inkl. Hamburger-Schublade (`lib/components/Nav.svelte`)                   | umgestellt                                        |
-| Startseite (`routes/+page.svelte`)                                            | umgestellt                                        |
-| Gemeinsame Klassen in `+layout.svelte` (Formular, Buttons, Meldungen, Karten) | offen, noch Hex-Werte; betreffen alle Unterseiten |
-| Rezepte, Einkauf, Aufgaben, `RezeptFormular.svelte`                           | offen                                             |
+| Bereich                                                                                   | Status                                                                                                 |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Tokens, `body`, `:focus-visible`, reduced-motion                                          | umgestellt (`+layout.svelte`)                                                                          |
+| Nav inkl. Hamburger-Schublade (`lib/components/Nav.svelte`)                               | umgestellt                                                                                             |
+| Startseite (`routes/+page.svelte`)                                                        | umgestellt                                                                                             |
+| Gemeinsame Klassen in `+layout.svelte` (Formular, Buttons, Meldungen, Karten)             | Farben, Schriften, Übergänge, Hover umgestellt; Abstände, 8px-Radien und `0.82rem`/`0.9rem` noch offen |
+| Fokus: kein `outline: none` mehr im Code (Rezepte, Einkauf, Aufgaben)                     | umgestellt                                                                                             |
+| Touch-Trefffläche ≥ 44px auf `/einkauf` und `/aufgaben` (Wochenansicht, Formulare, Modal) | umgestellt; Monatsansicht Mobile offen                                                                 |
+| Rezepte, Einkauf, Aufgaben, `RezeptFormular.svelte` (Farben, Größen)                      | offen                                                                                                  |
 
 ### Farben
 
@@ -40,7 +42,9 @@ Alle Tokens dieser Datei sind als CSS Custom Properties in `src/routes/+layout.s
 | `--farbe-erfolg-flaeche` | `#f3f8f1`                 | Hintergrund von Erfolgsmeldungen              |
 | `--farbe-hinweis`        | `#f9c846`                 | Markierungen (z. B. „heute“)                  |
 
-Weitere Farbtöne im Bestand (z. B. `#e8e0d6`, `#d4edda`, `#5a4a3a`) werden schrittweise auf die obigen Tokens zurückgeführt.
+Weitere Farbtöne im Bestand (z. B. `#e8e0d6`, `#d4edda`, `#5a4a3a`) werden schrittweise auf die obigen Tokens zurückgeführt. Bereits zurückgeführt (2026-09-24): `#b0a898` → `--farbe-text-3`, `#fdf5f5` → `--farbe-fehler-flaeche`, `#8b2020` → `--farbe-fehler`, `#f0c0c0`/`#b8d8b8` (Meldungsrand) → `--farbe-rand`, `#f0ebe2` (Bild-Platzhalter) → `--farbe-flaeche-2`.
+
+Einzige erlaubte Hex-Stelle außerhalb der Token-Definition: Data-URIs in `url()` (z. B. der `select`-Pfeil mit `%238A7D6E` = `--farbe-text-3`), weil CSS-Variablen dort nicht wirken.
 
 ### Form, Tiefe, Abstände
 
@@ -53,7 +57,6 @@ Weitere Farbtöne im Bestand (z. B. `#e8e0d6`, `#d4edda`, `#5a4a3a`) werden schr
 | `--schatten-s`                | `0 2px 8px rgba(44, 74, 30, 0.08)`       | leichte Anhebung                                                   |
 | `--schatten-m`                | `0 8px 28px rgba(44, 74, 30, 0.1)`       | Karten-Hover                                                       |
 | `--schatten-l`                | `0 24px 64px rgba(0, 0, 0, 0.22)`        | Modale Dialoge                                                     |
-| `--fokus-ring`                | `0 0 0 3px rgba(74, 124, 63, 0.13)`      | Fokus auf Eingaben/Buttons                                         |
 | `--abstand-1` … `--abstand-7` | `0.25 / 0.5 / 0.75 / 1 / 1.5 / 2 / 3rem` | nur diese Stufen für padding/gap/margin                            |
 | `--nav-hoehe`                 | `62px`                                   | Höhe der Nav; Sticky-Offset der Schublade, `min-height`-Rechnungen |
 
@@ -92,17 +95,20 @@ Regeln:
 4. Hover-Effekte nur hinter `@media (hover: hover)`, damit auf Touch nichts „kleben“ bleibt.
 5. Neue oder entfernte Listeneinträge dürfen mit Svelte `fade`/`slide` (Dauer 150–250ms) erscheinen, aber nicht bei jedem SSE-Update neu animiert werden.
 6. Global gilt `@media (prefers-reduced-motion: reduce)` (in `+layout.svelte`): `--dauer-schnell`/`--dauer-mittel` werden `0ms`, alle CSS-Übergänge und -Animationen laufen mit `0.01ms`, `scroll-behavior: auto`. Svelte-JS-Transitions (`fade`/`slide`) sind davon nicht erfasst; wer sie nutzt, setzt die Dauer bei reduced-motion selbst auf 0.
-7. Einheitlicher Fokus: global `:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 2px }`. Text-Eingaben, `textarea` und `select` zeigen Fokus stattdessen über Rand `--farbe-akzent` + `--fokus-ring` (ohne zusätzliche Outline). Nie `outline: none` ohne Ersatz.
+7. Einheitlicher Fokus: global `:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 2px }` für **alle** Elemente, auch Text-Eingaben, `textarea` und `select`. Eingabefelder färben bei `:focus` zusätzlich den Rand auf `--farbe-akzent` (kein Box-Shadow-Ring mehr; der frühere `--fokus-ring` ist entfallen). `outline: none` ist verboten. Schneidet ein Container mit `overflow: hidden` den Ring ab, entweder das `overflow` entfernen (Ecken dann an den Kindern runden) oder für das Kind `outline-offset: -2px` setzen.
 8. Übergänge immer als `<eigenschaft> var(--dauer-…) var(--kurve)` schreiben, keine festen Sekunden-Werte und kein `ease`.
-9. Touch-Geräte: interaktive Elemente unter `@media (pointer: coarse)` mindestens 44px hoch (z. B. Nav-Links auf Tablets).
+9. Touch-Geräte: interaktive Elemente haben unter `@media (pointer: coarse)` eine Trefffläche von mindestens 44×44px. Zwei Wege:
+   - **Eingaben und Text-Buttons** in Formularen/Dialogen: `min-height: 44px`.
+   - **Kleine Icon-/Chip-Buttons**, die optisch klein bleiben sollen: unsichtbares, zentriertes Pseudo-Element (`position: relative` am Button, `::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; min-width: 44px; min-height: 44px; transform: translate(-50%, -50%) }`). Der Abstand zu benachbarten Zielen muss mindestens die Summe beider Erweiterungen sein (bei zwei 32px-Buttons also `--abstand-3` = 12px), sonst überlagern sich die Flächen. Sichtbar kleiner als 32px werden Buttons auf Touch nicht. Der Container darf kein `overflow: hidden` haben.
+   - `viewport-check.mjs` misst nur die Element-Box; Pseudo-Erweiterungen dort als „small target“ gemeldet sind erwartbar und per `elementFromPoint` zu verifizieren.
 
 ## Komponenten-Muster
 
 - **Primärbutton** `.btn-speichern`: `--farbe-primaer`, Text `--farbe-flaeche`, `--radius-m`, Höhe ≥ 44px.
 - **Sekundär/gestrichelt** `.btn-hinzufuegen`: transparent, Rand `--farbe-akzent-hell` gestrichelt, Hover `--farbe-akzent-flaeche`.
-- **Icon-Button rund** `.btn-entfernen`: `--radius-rund`, sichtbar 34px, Tap-Fläche auf Mobile ≥ 44px (z. B. per Padding oder Pseudo-Element).
+- **Icon-Button rund** `.btn-entfernen`: `--radius-rund`, sichtbar 34px, Tap-Fläche auf Touch ≥ 44px per Pseudo-Element (global in `+layout.svelte`).
 - **Karte** `.rezept-karte`: `--farbe-flaeche`, Rand `--farbe-rand`, `--radius-l`, Hover wie Regel 3.
-- **Eingabe**: `--farbe-flaeche`, Rand `--farbe-rand-stark`, `--radius-m`, Fokus `--farbe-akzent` + `--fokus-ring`.
-- **Meldungen** `.meldung-fehler` / `.meldung-erfolg`: linker 4px-Streifen, `--radius-m`.
+- **Eingabe**: `--farbe-flaeche`, Rand `--farbe-rand-stark`, `--radius-m`, Fokus: Rand `--farbe-akzent` + globaler `:focus-visible`-Ring.
+- **Meldungen** `.meldung-fehler` / `.meldung-erfolg`: Rand 1px `--farbe-rand`, linker 4px-Streifen (`--farbe-fehler` bzw. `--farbe-primaer`), Fläche `--farbe-fehler-flaeche` bzw. `--farbe-erfolg-flaeche`, Text in Streifenfarbe, `--radius-m`.
 
 Wiederkehrende Muster gehören als `:global(...)`-Klasse in `+layout.svelte` und nicht als Kopie in jede Seite.

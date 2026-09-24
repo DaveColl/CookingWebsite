@@ -151,8 +151,7 @@
 		border: 1.5px solid #ddd5c5;
 		border-radius: 8px;
 		padding: 0.55rem 0.85rem;
-		outline: none;
-		transition: border-color 0.15s;
+		transition: border-color var(--dauer-schnell) var(--kurve);
 	}
 
 	.import-zeile input:focus {

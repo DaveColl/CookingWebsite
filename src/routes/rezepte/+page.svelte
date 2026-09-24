@@ -88,17 +88,14 @@
 		border-radius: 10px;
 		padding: 0.7rem 0.95rem;
 		width: 100%;
-		outline: none;
-		transition:
-			border-color 0.18s,
-			box-shadow 0.18s;
+		transition: border-color var(--dauer-schnell) var(--kurve);
 		-webkit-appearance: none;
 		appearance: none;
 	}
 
+	/* Fokusring kommt global über :focus-visible (+layout.svelte) */
 	.suche-eingabe:focus {
-		border-color: #4a7c3f;
-		box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.13);
+		border-color: var(--farbe-akzent);
 	}
 
 	.suche-eingabe::placeholder {
