@@ -1,22 +1,12 @@
 // src/routes/rezepte/neues-rezept/+page.server.ts
 import type { Actions, PageServerLoad } from './$types';
 import { SqliteError } from 'better-sqlite3';
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import db from '$lib/db';
+import { bildSpeichern, dateinameAusPfad, UPLOAD_URL_PREFIX } from '$lib/uploads.server';
 import { istKategorie, STANDARD_KATEGORIE } from '$lib/kategorien';
 
 const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_BYTES = 5 * 1024 * 1024;
-
-async function bildSpeichern(datei: File): Promise<string> {
-	await mkdir('static/uploads', { recursive: true });
-	const ext = datei.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-	const name = `${randomUUID()}.${ext}`;
-	await writeFile(join('static/uploads', name), new Uint8Array(await datei.arrayBuffer()));
-	return `/uploads/${name}`;
-}
 
 // Vorauswahl über ?kategorie=nachtisch (z. B. aus der Nachtisch-Liste)
 export const load: PageServerLoad = ({ url }) => {
@@ -108,8 +98,9 @@ export const actions = {
 		} else {
 			// Use pre-downloaded image from scraper if no manual upload
 			const importPfad = formData.get('bild_pfad')?.toString().trim();
-			if (importPfad && importPfad.startsWith('/uploads/')) {
-				bildPfad = importPfad;
+			const importName = dateinameAusPfad(importPfad);
+			if (importName) {
+				bildPfad = `${UPLOAD_URL_PREFIX}${importName}`;
 			}
 		}
 

@@ -1,8 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { bildDatenSpeichern } from '$lib/uploads.server';
 
 function parseISODuration(iso: string): number {
 	const hours = parseInt(iso.match(/(\d+)H/)?.[1] ?? '0');
@@ -221,19 +219,7 @@ export const POST = async ({ request }: RequestEvent) => {
 				const imgRes = await fetch(imageUrl, { headers: { Referer: url } });
 				if (imgRes.ok) {
 					const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg';
-					const extMap: Record<string, string> = {
-						'image/jpeg': 'jpg',
-						'image/png': 'png',
-						'image/webp': 'webp'
-					};
-					const ext = extMap[contentType.split(';')[0].trim()] ?? 'jpg';
-					const filename = `${randomUUID()}.${ext}`;
-					await mkdir('static/uploads', { recursive: true });
-					await writeFile(
-						join('static/uploads', filename),
-						new Uint8Array(await imgRes.arrayBuffer())
-					);
-					bildPfad = `/uploads/${filename}`;
+					bildPfad = await bildDatenSpeichern(await imgRes.arrayBuffer(), contentType);
 				}
 			} catch {
 				// image download failure is non-fatal

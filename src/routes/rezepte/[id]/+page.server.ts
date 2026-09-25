@@ -1,10 +1,8 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { SqliteError } from 'better-sqlite3';
-import { writeFile, mkdir, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import db from '$lib/db';
+import { bildSpeichern, bildLoeschen } from '$lib/uploads.server';
 import { istKategorie, KATEGORIE_PFAD, STANDARD_KATEGORIE, type Kategorie } from '$lib/kategorien';
 
 interface Rezept {
@@ -26,27 +24,10 @@ interface ZutatZeile {
 const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
-async function bildSpeichern(datei: File): Promise<string> {
-	await mkdir('static/uploads', { recursive: true });
-	const ext = datei.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-	const name = `${randomUUID()}.${ext}`;
-	await writeFile(join('static/uploads', name), new Uint8Array(await datei.arrayBuffer()));
-	return `/uploads/${name}`;
-}
-
 function verwaistZutatenLoeschen() {
 	db.prepare(
 		'DELETE FROM zutaten WHERE id NOT IN (SELECT DISTINCT zutat_id FROM rezepte_zutaten)'
 	).run();
-}
-
-async function alteBildLoeschen(bildPfad: string | null) {
-	if (!bildPfad) return;
-	try {
-		await unlink(`static${bildPfad}`);
-	} catch {
-		// ignore missing file
-	}
 }
 
 export const load: PageServerLoad = ({ params }) => {
@@ -125,7 +106,7 @@ export const actions: Actions = {
 				return { erfolg: false, message: 'Das Bild darf maximal 5 MB groß sein.' };
 			try {
 				const neuerPfad = await bildSpeichern(bildDatei);
-				await alteBildLoeschen(aktuell?.bild ?? null);
+				await bildLoeschen(aktuell?.bild ?? null);
 				bildPfad = neuerPfad;
 			} catch {
 				return { erfolg: false, message: 'Fehler beim Speichern des Bildes.' };
@@ -175,7 +156,7 @@ export const actions: Actions = {
 
 		db.prepare('DELETE FROM rezepte WHERE id = ?').run(id);
 		verwaistZutatenLoeschen();
-		await alteBildLoeschen(rezept?.bild ?? null);
+		await bildLoeschen(rezept?.bild ?? null);
 
 		// Zurück auf die Liste, in der das Rezept stand
 		redirect(303, KATEGORIE_PFAD[rezept?.kategorie ?? STANDARD_KATEGORIE]);
