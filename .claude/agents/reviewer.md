@@ -23,7 +23,7 @@ git status --short
 git diff HEAD --stat && git diff HEAD
 ```
 
-Geänderte Dateien = diff gegen HEAD plus neue untracked Dateien. `static/uploads/.gitkeep` (gelöscht) ist ein bekannter, nicht zugehöriger Altzustand und wird ignoriert.
+Geänderte Dateien = diff gegen HEAD plus neue untracked Dateien und Löschungen.
 Lies den Handoff (implementer oder designer) und prüfe, ob der Diff genau dazu passt, ohne fremde Änderungen.
 
 ### 2. Statische Checks
@@ -35,14 +35,19 @@ npx eslint <geänderte Dateien>
 jq -e .scripts.test package.json && npm test   # nur falls ein Test-Script existiert (derzeit keins)
 ```
 
-Zusätzlich zur Information: `npm run lint` (gesamtes Projekt).
+**CI-Gate (GitHub Actions muss grün sein):** Der Workflow `.github/workflows/ci.yml` führt `npm ci`, `npm run check` und `npm run lint` (prettier --check . && eslint .) auf dem **gesamten Projekt** aus. Führe genau diese Befehle im Projektroot aus und gib die Exit-Codes an:
+
+```bash
+npm run check; echo "check exit=$?"
+npm run lint;  echo "lint exit=$?"
+```
+
+Wenn die Änderung `package.json`, `package-lock.json` oder `.github/workflows/` berührt, zusätzlich im Scratch-Ordner (Kopie des Working Trees ohne node_modules, DB, uploads) `npm ci && npm run check && npm run lint` ausführen, damit der Runner sich identisch verhält (Node-Version aus ci.yml beachten).
 
 Bewertung:
 
-- Jeder Fehler in einer **geänderten Datei** blockiert (FAIL).
-- Fehler in **nicht geänderten** Dateien, die in CLAUDE.md unter „Bekannte Altlasten“ stehen, blockieren nicht. Liste sie als „vorbestehend“.
-- **Neue** Fehler in nicht geänderten Dateien (z. B. Typfehler durch eine geänderte Schnittstelle) blockieren.
-- Neue svelte-check-a11y-Warnungen in geänderten Dateien blockieren.
+- `npm run check` oder `npm run lint` mit Exit ≠ 0 → **FAIL**, egal ob der Fehler in einer geänderten oder unveränderten Datei liegt. Es gibt keine tolerierten Altlasten mehr: Ein Commit, der den CI-Lauf rot lässt, wird nicht freigegeben. Liegt der Fehler außerhalb des Auftrags, benenne ihn trotzdem als Befund. Der Hauptagent entscheidet dann, ob er mitbehoben wird.
+- Neue svelte-check-Warnungen (a11y usw.) blockieren ebenfalls.
 
 ### 3. Responsive- und Interaktionsprüfung (bei jeder UI-Änderung Pflicht)
 
@@ -95,7 +100,7 @@ Kurz auf Korrektheit, Svelte-5-Idiome (Runes, keine Stores wo `$state` reicht), 
 ```
 ## Review-Ergebnis: PASS | FAIL
 Geprüfte Dateien: ...
-Statisch: check=<ok/n Fehler>, prettier=<ok/...>, eslint=<ok/...>, tests=<ok/keine vorhanden>
+Statisch: check=<ok/n Fehler> (exit <n>), lint=<ok/...> (exit <n>), tests=<ok/keine vorhanden>, CI=<grün/rot>
 Viewports:
 - 320: <ok / Befund>
 - 390: ...

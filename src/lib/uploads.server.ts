@@ -1,11 +1,13 @@
 // Zentraler Ort für hochgeladene Rezeptbilder.
 // Die Dateien werden zur Laufzeit über src/hooks.server.ts ausgeliefert,
-// damit neue Uploads ohne Rebuild sichtbar sind.
+// damit neue Uploads ohne Rebuild sichtbar sind. Standard: uploads/ im
+// Arbeitsverzeichnis (bewusst nicht static/, sonst landet es im Build);
+// per env UPLOAD_DIR überschreibbar.
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-export const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || 'static/uploads');
+export const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || 'uploads');
 export const UPLOAD_URL_PREFIX = '/uploads/';
 
 export const BILD_TYPEN: Record<string, string> = {

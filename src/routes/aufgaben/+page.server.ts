@@ -87,9 +87,7 @@ export const actions: Actions = {
 
 		const maxReihenfolge = (
 			db
-				.prepare(
-					'SELECT COALESCE(MAX(reihenfolge), -1) as m FROM aufgaben WHERE geplant_fuer = ?'
-				)
+				.prepare('SELECT COALESCE(MAX(reihenfolge), -1) as m FROM aufgaben WHERE geplant_fuer = ?')
 				.get(geplant_fuer) as { m: number }
 		).m;
 
@@ -238,9 +236,7 @@ export const actions: Actions = {
 		if (!aufgabe || !ziel || aufgabe.geplant_fuer !== ziel.geplant_fuer) error(400);
 
 		const alle = db
-			.prepare(
-				'SELECT id FROM aufgaben WHERE geplant_fuer = ? ORDER BY reihenfolge ASC, id ASC'
-			)
+			.prepare('SELECT id FROM aufgaben WHERE geplant_fuer = ? ORDER BY reihenfolge ASC, id ASC')
 			.all(aufgabe.geplant_fuer) as { id: number }[];
 
 		const ohne = alle.filter((t) => t.id !== id);

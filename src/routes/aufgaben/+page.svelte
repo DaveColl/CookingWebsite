@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { tiefReaktiv } from '$lib/reaktiv.svelte';
 
 	interface Aufgabe {
 		id: number;
@@ -12,6 +13,7 @@
 		geplant_fuer: string;
 		erledigt: number;
 		erstellt: number;
+		reihenfolge: number;
 		zugewiesen_an: string[];
 		beschreibung: string | null;
 	}
@@ -25,17 +27,14 @@
 	}: { data: PageData & { aufgaben: Aufgabe[]; personen: string[]; titelVorschlaege: string[] } } =
 		$props();
 
-	// svelte-ignore state_referenced_locally
-	let activeData = $state(data);
-
-	$effect(() => {
-		activeData = data;
-	});
+	// Folgt `data` (nach invalidate/update), wird zwischendurch per SSE und
+	// optimistischen Updates lokal überschrieben.
+	let activeData = $derived(tiefReaktiv(data));
 
 	$effect(() => {
 		const es = new EventSource('/api/aufgaben/stream');
 		es.onmessage = (e) => {
-			activeData = JSON.parse(e.data);
+			activeData = tiefReaktiv(JSON.parse(e.data));
 		};
 		return () => es.close();
 	});
@@ -84,6 +83,16 @@
 
 	function localDateStr(d: Date): string {
 		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+
+	// Wie der Server beim Erstellen: ans Ende des Tages (MAX(reihenfolge) + 1)
+	function naechsteReihenfolge(datum: string): number {
+		return (
+			activeData.aufgaben.reduce(
+				(max, a) => (a.geplant_fuer === datum ? Math.max(max, a.reihenfolge ?? -1) : max),
+				-1
+			) + 1
+		);
 	}
 
 	function kapName(s: string): string {
@@ -232,7 +241,7 @@
 		}
 	}
 
-	async function onInfoPointerUp(e: PointerEvent) {
+	async function onInfoPointerUp() {
 		if (!pointerActive || dragId === null) {
 			// Was a tap/click — open modal
 			const aufgabe = activeData.aufgaben.find((a) => a.id === dragId);
@@ -282,12 +291,6 @@
 			body.append('neues_datum', zielDatum);
 			fetch('?/verschieben', { method: 'POST', body }).then(() => invalidateAll());
 		}
-	}
-
-	function tagKlick(datum: string, e: MouseEvent | PointerEvent) {
-		const target = e.target as HTMLElement;
-		if (target.closest('.aufgabe-karte') || target.closest('.schnell-form')) return;
-		schnellErstellungDatum = datum;
 	}
 
 	function aufgabeKlick(aufgabe: Aufgabe) {
@@ -394,6 +397,7 @@
 						geplant_fuer,
 						erledigt: 0,
 						erstellt: Date.now(),
+						reihenfolge: naechsteReihenfolge(geplant_fuer),
 						zugewiesen_an,
 						beschreibung: null
 					}
@@ -463,8 +467,15 @@
 				class:heute={datum === heute}
 				class:drag-ziel={dragZielDatum === datum}
 				style={ansicht === 'monat' && i === 0 ? `grid-column-start: ${monatErsterWochentag}` : ''}
-				onclick={(e) => tagKlick(datum, e)}
 			>
+				<!-- Füllt die ganze Spalte hinter Kopf und Karten: Klick/Tipp auf freie Fläche
+				     oder Enter/Leertaste öffnet die Schnell-Erstellung für diesen Tag. -->
+				<button
+					type="button"
+					class="tag-flaeche"
+					aria-label="Neue Aufgabe am {wochentagKurz(datum)}, {isoToEu(datum)}"
+					onclick={() => (schnellErstellungDatum = datum)}
+				></button>
 				<div class="tag-kopf">
 					<span class="tag-wochentag">{wochentagKurz(datum)}</span>
 					<span class="tag-nummer">{tagNummer(datum)}</span>
@@ -707,6 +718,7 @@
 									geplant_fuer: gf,
 									erledigt: 0,
 									erstellt: Date.now(),
+									reihenfolge: naechsteReihenfolge(gf),
 									zugewiesen_an: [],
 									beschreibung: null
 								}
@@ -716,11 +728,22 @@
 								await update({ reset: true });
 							};
 						}}
-						onclick={(e) => e.stopPropagation()}
 					>
-						<input type="hidden" name="datum" value={isoToEu(datum)} />
-						<input type="hidden" name="dauer_minuten" value="15" />
-						<input type="hidden" name="wiederholung" value="einmalig" />
+						<input
+							type="hidden"
+							name="datum"
+							value={isoToEu(datum)}
+						/>
+						<input
+							type="hidden"
+							name="dauer_minuten"
+							value="15"
+						/>
+						<input
+							type="hidden"
+							name="wiederholung"
+							value="einmalig"
+						/>
 						<input
 							type="text"
 							name="titel"
@@ -732,11 +755,14 @@
 							class="schnell-titel"
 						/>
 						<div class="schnell-aktionen">
-							<button type="submit" class="btn-aktion ok">✓</button>
+							<button
+								type="submit"
+								class="btn-aktion ok">✓</button
+							>
 							<button
 								type="button"
 								class="btn-aktion abbrechen"
-								onclick={(e) => { e.stopPropagation(); schnellErstellungDatum = null; }}>✕</button
+								onclick={() => (schnellErstellungDatum = null)}>✕</button
 							>
 						</div>
 					</form>
@@ -1282,6 +1308,7 @@
 	}
 
 	.tag-spalte {
+		position: relative;
 		background: #fdfaf4;
 		border: 1px solid #e5ddd0;
 		border-radius: 10px;
@@ -1305,6 +1332,23 @@
 		border-color: #4a7c3f;
 		background: #eef5ec;
 		outline: 2px dashed #9dc495;
+		outline-offset: -2px;
+	}
+
+	/* Unsichtbare Klickfläche hinter dem Tagesinhalt (Schnell-Erstellung).
+	   Kopf bleibt darunter (nicht positioniert) und leitet Klicks an sie weiter;
+	   Karten und Schnell-Formular liegen per position: relative darüber. */
+	.tag-flaeche {
+		position: absolute;
+		inset: 0;
+		padding: 0;
+		border: none;
+		border-radius: inherit;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.tag-flaeche:focus-visible {
 		outline-offset: -2px;
 	}
 
@@ -1523,6 +1567,7 @@
 
 	/* ── Quick-create inline form ─────────────────────── */
 	.schnell-form {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;

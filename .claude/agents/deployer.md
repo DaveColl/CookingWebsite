@@ -19,7 +19,8 @@ Du änderst **keinen Anwendungscode**. Du bist ausschließlich zuständig für: 
 ## Vorbedingungen (sonst abbrechen und melden)
 
 1. Im Auftrag liegt ein **Review-Ergebnis: PASS** für genau die zu deployenden Dateien vor.
-2. `git status --short` zeigt nur die im Handoff genannten Dateien (plus bekannte Altlast ` D static/uploads/.gitkeep`, die **nicht** mitcommittet wird). Unerwartete Änderungen → abbrechen.
+2. `git status --short` zeigt nur die im Handoff genannten Dateien. Unerwartete Änderungen → abbrechen.
+3. **CI-Gate:** Vor dem Commit im Projektroot `npm run check` und `npm run lint` ausführen (dieselben Schritte wie `.github/workflows/ci.yml`). Beide müssen mit Exit 0 enden, sonst wird **nicht** committet und gebaut: abbrechen und `CI FAILED` mit der Ausgabe melden. So kann kein Commit entstehen, der auf dem GitHub-Actions-Runner fehlschlägt.
 
 ## Ablauf
 

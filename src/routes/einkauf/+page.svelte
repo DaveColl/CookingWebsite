@@ -2,6 +2,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import { tiefReaktiv } from '$lib/reaktiv.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -13,17 +14,14 @@
 		erstellt: number;
 	}
 
-	// svelte-ignore state_referenced_locally
-	let artikel = $state<Artikel[]>(data.artikel);
-
-	$effect(() => {
-		artikel = data.artikel;
-	});
+	// Folgt `data` (nach invalidate/update), wird zwischendurch per SSE und
+	// optimistischen Updates lokal überschrieben.
+	let artikel = $derived<Artikel[]>(tiefReaktiv(data.artikel));
 
 	$effect(() => {
 		const es = new EventSource('/api/einkauf/stream');
 		es.onmessage = (e) => {
-			artikel = JSON.parse(e.data);
+			artikel = tiefReaktiv(JSON.parse(e.data));
 		};
 		return () => es.close();
 	});

@@ -23,8 +23,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 rezepte.db
 
-# Uploaded recipe images
-static/uploads/*
-!static/uploads/.gitkeep
+# Uploaded recipe images (Laufzeitdaten, ausgeliefert über hooks.server.ts)
+/uploads/
 migrate.js
-static/uploads

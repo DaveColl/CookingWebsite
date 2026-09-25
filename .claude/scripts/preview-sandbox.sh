@@ -29,10 +29,13 @@ start)
 	mkdir -p "$SANDBOX"
 	rsync -a --delete \
 		--exclude node_modules --exclude .git --exclude build --exclude .svelte-kit \
-		--exclude rezepte.db --exclude 'rezepte.db-*' --exclude 'static/uploads' \
+		--exclude rezepte.db --exclude 'rezepte.db-*' --exclude '/uploads' \
 		"$ROOT/" "$SANDBOX/"
 	ln -sfn "$ROOT/node_modules" "$SANDBOX/node_modules"
-	mkdir -p "$SANDBOX/static/uploads"
+	# Keine Produktionsbilder in die Sandbox kopieren; Upload-Ordner startet leer
+	# (wie die DB bei jedem Start frisch, damit keine Test-Uploads liegen bleiben).
+	rm -rf "$SANDBOX/uploads"
+	mkdir -p "$SANDBOX/uploads"
 	# node_modules is a symlink into the repo; allow Vite to serve from there.
 	cat >"$SANDBOX/vite.sandbox.config.ts" <<CFG
 import { mergeConfig } from 'vite';

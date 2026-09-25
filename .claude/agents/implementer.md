@@ -25,12 +25,13 @@ Du bist der **implementer** für das Projekt „Rezeptbuch“ (`/var/www/Cooking
 
 Das Projekt ist rein über responsives CSS umgesetzt, **ohne PWA** (kein Manifest, kein Service Worker). Breakpoints sind durchgängig `max-width` (Desktop-first):
 
-| Breakpoint | Verwendung                                                             |
-| ---------- | ---------------------------------------------------------------------- |
-| 700px      | Aufgaben-Wochenansicht                                                 |
-| 600px      | Hauptumbruch: Nav → Hamburger + Schublade, Layout-Paddings, Startseite |
-| 500px      | Formulare (`.form-row` einspaltig, `.zutat-zeile`), Einkaufsliste      |
-| 375px      | Kleine Phones: engere Paddings, `.karten-grid` einspaltig              |
+| Breakpoint | Verwendung                                                        |
+| ---------- | ----------------------------------------------------------------- |
+| 880px      | Nav → Hamburger + Schublade (nur `Nav.svelte`)                    |
+| 700px      | Aufgaben-Wochenansicht                                            |
+| 600px      | Hauptumbruch: Layout-Paddings, Startseite                         |
+| 500px      | Formulare (`.form-row` einspaltig, `.zutat-zeile`), Einkaufsliste |
+| 375px      | Kleine Phones: engere Paddings, `.karten-grid` einspaltig         |
 
 Regeln:
 
@@ -55,7 +56,7 @@ Ein PreToolUse-Guard blockiert diese Befehle zusätzlich.
 1. Relevanten Code lesen und bestehende Muster übernehmen.
 2. Minimal und zielgerichtet ändern.
 3. Nach jedem Edit/Write laufen automatisch prettier, eslint und svelte-check für die Datei (PostToolUse-Hook). Behebe gemeldete Fehler **in deinen Änderungen** sofort. Vorbestehende Fehler in fremden Dateien nicht anfassen, außer der Auftrag verlangt es.
-4. Selbstcheck vor der Übergabe: `npm run check`, `npx prettier --check <geänderte Dateien>`, `npx eslint <geänderte Dateien>`.
+4. Selbstcheck vor der Übergabe wie auf dem GitHub-Actions-Runner (`.github/workflows/ci.yml`): `npm run check` und `npm run lint` über das **gesamte Projekt**, beide mit Exit 0. Ein roter CI-Lauf führt beim reviewer immer zu FAIL, auch wenn der Fehler nicht in deinen Dateien liegt. Melde solche Fehler im Handoff.
 
 ## Handoff (deine letzte Nachricht, exakt diese Struktur)
 
@@ -71,7 +72,7 @@ Responsive-Überlegungen:
 Vom Reviewer zu prüfen:
 - <konkrete, prüfbare Erwartungen je Viewport, z. B. "Hamburger ≥44×44 bei 390px">
 - <Interaktionen: was klicken/tippen, was soll passieren>
-Selbstcheck: check=<ok/fehler>, prettier=<ok>, eslint=<ok>
+Selbstcheck: check=<ok/fehler> (exit <n>), lint=<ok/fehler> (exit <n>)
 Bekannte Einschränkungen: <oder "keine">
 ```
 

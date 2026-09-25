@@ -110,14 +110,14 @@ db.exec(`UPDATE aufgaben SET titel = lower(titel) WHERE titel != lower(titel);`)
 const aufgabenSpalten4 = db.pragma('table_info(aufgaben)') as { name: string }[];
 if (!aufgabenSpalten4.some((s) => s.name === 'reihenfolge')) {
 	db.exec(`ALTER TABLE aufgaben ADD COLUMN reihenfolge INTEGER NOT NULL DEFAULT 0`);
-	const tage = db.prepare(
-		'SELECT DISTINCT geplant_fuer FROM aufgaben'
-	).all() as { geplant_fuer: string }[];
+	const tage = db.prepare('SELECT DISTINCT geplant_fuer FROM aufgaben').all() as {
+		geplant_fuer: string;
+	}[];
 	const initOrder = db.transaction((tage: { geplant_fuer: string }[]) => {
 		for (const { geplant_fuer } of tage) {
-			const ids = db.prepare(
-				'SELECT id FROM aufgaben WHERE geplant_fuer = ? ORDER BY id ASC'
-			).all(geplant_fuer) as { id: number }[];
+			const ids = db
+				.prepare('SELECT id FROM aufgaben WHERE geplant_fuer = ? ORDER BY id ASC')
+				.all(geplant_fuer) as { id: number }[];
 			ids.forEach((row, i) =>
 				db.prepare('UPDATE aufgaben SET reihenfolge = ? WHERE id = ?').run(i, row.id)
 			);
